@@ -1,0 +1,60 @@
+{
+  "dlaKogo": [
+    {
+      "title": "„Zarabiam, a brak spokoju.”",
+      "text": "Masz dochody, ale brak bufora, nieregularne wydatki i stres przy każdej zmianie rat lub pracy."
+    },
+    {
+      "title": "„Chcę zmiany w pracy.”",
+      "text": "Wypalenie, stagnacja, chęć zmiany kierunku bez ryzykowania wszystkiego naraz."
+    },
+    {
+      "title": "„Po rozstaniu wszystko się posypało.”",
+      "text": "Wsparcie emocjonalno-finansowe po życiowych zmianach (rozstanie, przeprowadzka, start JDG)."
+    },
+    {
+      "title": "„Chaos w wydatkach.”",
+      "text": "Trudno przewidzieć miesiąc do przodu — chcesz prosty system i spokój."
+    },
+    {
+      "title": "„Negocjacje wynagrodzenia.”",
+      "text": "Przygotowanie do rozmowy: argumenty, widełki, scenariusze i granice."
+    },
+    {
+      "title": "„Startuję z JDG.”",
+      "text": "Budżet startowy, poduszka, stawki i plan na pierwsze 90 dni."
+    }
+  ],
+  "proces": [
+    { "title": "1. Diagnoza", "text": "Sytuacja, zasoby, przeszkody. Krótko i na temat." },
+    { "title": "2. Plan 30–60–90", "text": "Kroki, terminy, progi decyzyjne. Jedna kartka, zero chaosu." },
+    { "title": "3. Wdrożenie", "text": "Nawyki, narzędzia, rozmowy (np. z pracodawcą/bankiem)." },
+    { "title": "4. Monitorowanie", "text": "Krótki follow-up i korekty, by efekt został z Tobą." }
+  ],
+  "oferta": [
+    {
+      "title": "Konsultacja 60 minut",
+      "desc": "Szybka diagnoza finansowo-zawodowa, priorytety i pierwsze kroki.",
+      "bullets": ["Brief potrzeb i celów", "3 kluczowe decyzje do podjęcia", "Mini-plan na 2 tygodnie"],
+      "price": "249 zł"
+    },
+    {
+      "title": "Pakiet „Reset finansowy” – 3 sesje",
+      "desc": "Porządkujemy budżet, decyzje i nawyki. Spokój i przewidywalność.",
+      "bullets": ["Plan 30–60–90 dni", "Szablony i arkusze (budżet, bufor, długi)", "E-mail follow-up po każdej sesji"],
+      "price": "699 zł"
+    },
+    {
+      "title": "Pakiet „Kierunek praca” – 5 sesji",
+      "desc": "Zmiana/negocjacje/dalsza ścieżka. Decyzje w zgodzie z wartościami i finansami.",
+      "bullets": ["Strategia zmiany lub rozwoju", "Trening rozmów + plan finansowy", "Materiały i checklisty"],
+      "price": "1 099 zł"
+    },
+    {
+      "title": "Pool minutowy",
+      "desc": "Elastycznie dopasowany czas do potrzeb.",
+      "bullets": ["Do wykorzystania wg potrzeb", "Brak sztywnych sesji", "Idealne do pracy zadaniowej"],
+      "price": "600 zł"
+    }
+  ]
+}

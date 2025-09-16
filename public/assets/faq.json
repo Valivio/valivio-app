@@ -1,0 +1,28 @@
+{
+  "items": [
+    {
+      "q": "Czy to jest terapia?",
+      "a": "Nie, spotkania są rozwojowo-decyzyjne. (plan, nawyki, finanse osobiste, kariera). W razie potrzeby rekomenduję psychoterapię lub inną formę pomocy"
+    },
+    {
+      "q": "Co się dzieje na spotkaniach?",
+      "a": "Najpierw ustalamy co się dzieje. Później układamy plan działania."
+    },
+    {
+      "q": "Czy można płacić BLIKIEM?",
+      "a": "Tak. Płatność jest wymagana przy rezerwacji terminu. Po opłaceniu otrzymasz potwierdzenie i fakturę."
+    },
+    {
+      "q": "Co jeśli muszę przełożyć termin?",
+      "a": "Możesz przełożyć bezpłatnie najpóźniej 24h przed spotkaniem (link w mailu potwierdzającym). Później — zgodnie z polityką odwołań."
+    },
+    {
+      "q": "Czy pracujemy też nad budżetem i zadłużeniem?",
+      "a": "Tak. Porządkujemy budżet, bufory, priorytety spłat i nawyki. Bez oceny, z prostym planem 30–60–90 dni."
+    },
+    {
+      "q": "Czy wystawiasz faktury?",
+      "a": "Tak, faktura elektroniczna jest wysyłana automatycznie po zaksięgowaniu płatności."
+    }
+  ]
+}

@@ -1,0 +1,327 @@
+/* ==============
+   TOK VALIVIO – CLEAN CSS
+   ============== */
+
+/* Variables */
+:root{
+  --bg:#fff; --paper:#fff; --text:#111; --muted:#555; --link:#06c; --border:#e6e6e6;
+  --radius:14px; --maxw:980px;
+  --blue-rgb:245,249,255;      /* #f5f9ff */
+  --warm-rgb:255,247,240;      /* #fff7f0 */
+  --accent:#34c759;            /* zielony akcent */
+  --accent-ink:#fff;
+
+  --anchor-offset:84px;        /* offset pod sticky header */
+}
+@media (max-width:720px){ :root{ --anchor-offset:120px; } }
+
+/* Base */
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,system-ui,sans-serif;
+  color:var(--text); background:var(--bg); line-height:1.6;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+}
+img{max-width:100%; display:block}
+a{color:var(--link); text-decoration:none}
+a:hover{text-decoration:underline}
+section[id]{ scroll-margin-top: var(--anchor-offset); }
+
+/* Layout */
+.container{max-width:var(--maxw); margin-inline:auto; padding-inline:20px}
+.row{display:grid; gap:24px}
+.row.cols-3{grid-template-columns:repeat(3,1fr)}
+.row.cols-2{grid-template-columns:repeat(2,1fr)}
+@media (max-width:960px){ .row.cols-3{grid-template-columns:1fr 1fr} }
+@media (max-width:680px){ .row.cols-3,.row.cols-2{grid-template-columns:1fr} }
+
+/* Type scale */
+.h1{font-size:clamp(36px,5vw,56px); line-height:1.1; letter-spacing:-.02em; margin:0}
+.h2{font-size:clamp(28px,3.5vw,36px); line-height:1.15; letter-spacing:-.01em; margin:0}
+.h3{font-size:clamp(20px,2.2vw,22px); line-height:1.25; margin:0}
+.eyebrow{font-size:14px; letter-spacing:.08em; text-transform:uppercase; color:#6b7280}
+.lead{font-size:clamp(16px,1.6vw,20px); color:#333; max-width:70ch}
+
+/* Navigation */
+header{position:sticky; top:0; z-index:10; background:rgba(255,255,255,.85); backdrop-filter:saturate(140%) blur(8px)}
+.nav{display:flex; gap:12px; align-items:center; justify-content:space-between; padding:14px 0; flex-wrap:nowrap}
+.brand{display:flex; align-items:center; gap:10px; font-weight:700; font-size:1.2rem}
+.brand .mark{width:31px;height:31px;border-radius:8px;display:grid;place-items:center;border:1px solid var(--border)}
+.navlinks{display:flex; gap:20px; align-items:center; overflow-x:auto; -webkit-overflow-scrolling:touch; white-space:nowrap; scrollbar-width:none; max-width:60vw}
+.navlinks::-webkit-scrollbar{display:none}
+.navlinks a{color:#111; opacity:.85; font-size:1.2rem}
+.navlinks a:hover{opacity:1}
+.navcta{
+  display:inline-flex; align-items:center; gap:.6rem; padding:.6rem .95rem; border-radius:999px; font-weight:600; flex:0 0 auto;
+  background:var(--accent); border:1px solid var(--accent); color:var(--accent-ink);
+}
+.navcta:hover{filter:saturate(110%)}
+.navcta:focus-visible{outline:3px solid color-mix(in srgb, var(--accent) 60%, white 40%); outline-offset:2px}
+@media (max-width:720px){
+  .nav{flex-wrap:wrap; align-items:flex-start}
+  .brand{order:1} .navcta{order:2; margin-left:auto}
+  .navlinks{
+    order:3; width:100%; max-width:100%; padding-top:8px; border-top:1px solid var(--border);
+    justify-content:center; flex-wrap:wrap; gap:16px 20px; overflow-x:visible; white-space:normal; text-align:center;
+  }
+  .navlinks a{ flex:0 0 auto; }
+}
+
+/* Sections */
+section{padding:56px 0}
+.section-head{display:flex; flex-direction:column; align-items:center; text-align:center; gap:12px; margin-bottom:28px}
+.section-head p{max-width:68ch; color:var(--muted)}
+
+/* Section tints (biel → kolor → biel) */
+.tint-blue{
+  background:
+    radial-gradient(120% 90% at 50% 45%, rgba(var(--blue-rgb),.37) 0%, rgba(var(--blue-rgb),.16) 55%, rgba(var(--blue-rgb),0) 100%),
+    linear-gradient(180deg, #fff 0%, rgba(var(--blue-rgb),.68) 22%, rgba(var(--blue-rgb),.95) 50%, rgba(var(--blue-rgb),.68) 78%, #fff 100%);
+}
+.tint-warm{
+  background:
+    radial-gradient(120% 90% at 50% 45%, rgba(var(--warm-rgb),.37) 0%, rgba(var(--warm-rgb),.16) 55%, rgba(var(--warm-rgb),0) 100%),
+    linear-gradient(180deg, #fff 0%, rgba(var(--warm-rgb),.63) 22%, rgba(var(--warm-rgb),.90) 50%, rgba(var(--warm-rgb),.63) 78%, #fff 100%);
+}
+
+/* Hero (full-bleed image) */
+.hero-bleed{position:relative; isolation:isolate; min-height:clamp(320px,45vh,520px)}
+.hero-bleed .hero-img{
+  position:absolute; inset:0; z-index:0; width:100%; height:100%; object-fit:cover; object-position:50% 40%;
+}
+.hero-bleed::after{
+  content:""; position:absolute; inset:0; z-index:1; pointer-events:none;
+  background:linear-gradient(to bottom, rgba(255,255,255,.82) 0%, rgba(255,255,255,.60) 35%, rgba(255,255,255,.60) 65%, rgba(255,255,255,.82) 100%);
+}
+.hero-bleed .hero-content{
+  position:absolute; inset:0; z-index:2; display:grid; place-content:center; padding-top:56px; text-align:center;
+}
+.hero-bleed .eyebrow,
+.hero-bleed .hero-title,
+.hero-bleed .hero-lead,
+.hero-bleed .hero-lead strong{color:rgba(0,0,0,.93)}
+.hero{padding:72px 0 28px}
+.hero .cta{display:flex; gap:12px; flex-wrap:wrap; margin-top:24px}
+.hero-title{max-width:28ch; margin:0 auto; letter-spacing:-.02em; text-align:center}
+.hero-title .arrow{opacity:.5; margin:0 .6ch}
+.hero-lead{max-width:62ch; margin:16px auto 0; text-align:center}
+@media (max-width:420px){ .hero-title{max-width:22ch} .hero-lead{max-width:66vw} }
+
+/* Components */
+.btn{display:inline-flex; align-items:center; gap:.6rem; border-radius:999px; padding:.9rem 1.15rem; font-weight:700; border:1px solid #000; background:#000; color:#fff}
+.btn:hover{opacity:.9; text-decoration:none}
+.btn.ghost{background:#fff; color:#111; border-color:#000}
+
+.card{background:var(--paper); border:1px solid var(--border); border-radius:var(--radius); padding:22px}
+.meta{color:var(--muted); font-size:.95rem}
+.price{font-weight:800; font-size:22px}
+
+/* FAQ */
+details{border:1px solid var(--border); border-radius:12px; padding:14px 16px}
+details+details{margin-top:10px}
+summary{cursor:pointer; font-weight:700}
+
+/* Forms */
+form.card label{display:block; margin-top:8px}
+input,textarea{
+  width:100%; padding:12px; border-radius:12px; background:#fff; border:1px solid var(--border); color:var(--text);
+  margin-top:6px; margin-bottom:14px
+}
+input:focus,textarea:focus{outline:2px solid #0003; border-color:#000}
+.form-row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+
+/* Footer */
+footer{border-top:1px solid var(--border); padding:40px 0 64px}
+.fine{color:#666; font-size:.95rem}
+
+/* =========================
+   DLA KOGO – slider poziomy
+   ========================= */
+:root{ --dk-gap:24px; }
+
+#dlaKogoCards .dk-viewport{ overflow:hidden; }
+#dlaKogoCards .dk-track{
+  display:flex; gap:var(--dk-gap);
+  will-change:transform; transition:transform .5s ease;
+  padding:0 2px; align-items:stretch;
+}
+#dlaKogoCards .dk-card{ flex:0 0 calc((100% - (var(--dk-visible) - 1) * var(--dk-gap)) / var(--dk-visible)); display:flex; }
+#dlaKogoCards .dk-card .card{ display:flex; flex-direction:column; height:100%; }
+
+/* responsywność (3→2→1 widoczne) – sterowane JS przez --dk-visible,
+   ale awaryjnie ustawiamy breakpointy */
+@media (max-width:960px){ #dlaKogoCards .dk-track{ --dk-visible:2; } }
+@media (max-width:680px){ #dlaKogoCards .dk-track{ --dk-visible:1; } }
+
+/* Wyrównanie tytułu/opisu w kartach „Dla kogo” (2 linie tytułu + 1 linia przerwy) */
+#dla-kogo .card .h3{
+  --lh:1.25; line-height:var(--lh);
+  min-height:calc(2 * 1em * var(--lh)); max-height:calc(2 * 1em * var(--lh));
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin:0;
+}
+#dla-kogo .card .meta{ margin-top:calc(1em * 1.25); }
+
+/* =========================
+   OFERTA – równe karty i stałe pola
+   ========================= */
+
+/* Siatka: równe kolumny, karty rozciągają się na pełną wysokość */
+#ofertaCards.container.row.cols-3{
+  grid-template-columns:repeat(3,1fr);
+  align-items:stretch;
+  grid-auto-rows:1fr;
+}
+#ofertaCards .card{ display:flex; flex-direction:column; height:100%; overflow:hidden; word-break:break-word; }
+#ofertaCards .btn{ margin-top:auto; align-self:center; } /* przycisk przy dolnej krawędzi */
+
+/* Title (1–2 linie) → zawsze 1 linia przerwy → Desc (dokładnie 2 linie) */
+#oferta .card .of-title{
+  --lh-title:1.25; line-height:var(--lh-title);
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  min-height:calc(2 * 1em * var(--lh-title)); max-height:calc(2 * 1em * var(--lh-title));
+  margin:0;
+}
+#oferta .card .of-desc{
+  --lh-desc:1.45; line-height:var(--lh-desc);
+  margin-top:calc(1em * var(--lh-desc));               /* 1 linia przerwy */
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  min-height:calc(2 * 1em * var(--lh-desc)); max-height:calc(2 * 1em * var(--lh-desc));
+}
+
+/* 1 linia przerwy → Bullets (dokładnie 3 wiersze, każdy z kropką, 1 linia) */
+#oferta .card .of-list{
+  --lh-li:1.45; line-height:var(--lh-li);
+  margin-top:calc(1em * var(--lh-li));
+  list-style-type:disc; list-style-position:outside; padding-left:18px;
+  min-height:calc(3 * 1em * var(--lh-li)); max-height:calc(3 * 1em * var(--lh-li));
+  overflow:hidden;
+}
+#oferta .card .of-list li{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* 1 linia przerwy → Price (1 linia, wyśrodkowana) */
+#oferta .card .of-price{
+  --lh-li:1.45; margin-top:calc(1em * var(--lh-li));
+  text-align:center;
+}
+
+/* =========================
+   Helpers
+   ========================= */
+.muted{color:var(--muted)}
+.mt-8{margin-top:8px} .mt-12{margin-top:12px} .mt-16{margin-top:16px}
+.mt-20{margin-top:20px} .mt-28{margin-top:28px} .mt-36{margin-top:36px}
+.center{text-align:center}
+
+/* === OFERTA — Title = 2 linie + ZAWSZE 1 linia przerwy do Desc === */
+#ofertaCards .card .of-title{
+  --lh-title:1.25;
+  line-height:var(--lh-title);
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden;
+  min-height:calc(2 * 1em * var(--lh-title));
+  max-height:calc(2 * 1em * var(--lh-title));
+  margin:0 !important; /* reset ewentualnych starych marginesów */
+}
+
+#ofertaCards .card .of-desc{
+  --lh-desc:1.45;
+  line-height:var(--lh-desc);
+  /* ZAWSZE 1 linia odstępu: */
+  margin-top:calc(1em * var(--lh-desc)) !important;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden;
+  min-height:calc(2 * 1em * var(--lh-desc));
+  max-height:calc(2 * 1em * var(--lh-desc));
+}
+
+/* Neutralizacja starszych reguł, które mogły kolidować */
+#ofertaCards .card .meta:nth-of-type(2){ margin-top:0 !important; }
+
+/* Przywrócenie zielonego przycisku "Umów" w Ofercie */
+#ofertaCards .btn{
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+#ofertaCards .btn:hover{ filter: saturate(110%); }
+
+/* OFERTA – wyśrodkowanie treści w kartach */
+#ofertaCards .card{
+  text-align: center;
+}
+
+/* Bullets wyśrodkowane (kropka + tekst) */
+#ofertaCards .card .of-list{
+  list-style-position: inside;  /* kropka w środku wraz z tekstem */
+  padding-left: 0;              /* bez wcięcia */
+  margin-left: 0;
+}
+
+/* (opcjonalnie) kosmetyka odstępów przy centrowaniu */
+#ofertaCards .card .of-title{ margin-left:auto; margin-right:auto; }
+#ofertaCards .card .of-desc{  margin-left:auto; margin-right:auto; }
+#ofertaCards .card .of-price{ margin-left:auto; margin-right:auto; }
+
+/* DLA KOGO – wyśrodkowanie zawartości kart */
+#dla-kogo .card{
+  text-align: center;
+}
+
+/* kosmetyka: pewność, że nagłówek i opis trzymają środek */
+#dla-kogo .card .h3,
+#dla-kogo .card .meta{
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* OFERTA – 4 w 1 rzędzie (desktop), 2×2 na tablet/telefon */
+#ofertaCards.container.row.cols-3{
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 960px){
+  #ofertaCards.container.row.cols-3{
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 680px){
+  /* trzymamy 2 kolumny również na telefonach, jak prosisz */
+  #ofertaCards.container.row.cols-3{
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+
+/* OFERTA — 2×2 na wszystkich szerokościach */
+#ofertaCards.container.row.cols-3{
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* Minimalnie szersza sekcja Oferta na desktopie (bez wpływu na resztę) */
+@media (min-width: 981px){
+  #oferta .container{
+    max-width: 1120px;           /* było var(--maxw)=980px */
+  }
+}
+
+/* Odrobina więcej oddechu między kartami (opcjonalnie) */
+#ofertaCards{
+  gap: 28px;                      /* globalne było 24px; usuń ten blok, jeśli wolisz 24px */
+}
+
+/* OFERTA — 20% węższe karty na desktopie */
+@media (min-width: 981px){
+  #oferta .container{
+    max-width: 896px; /* było 1120px */
+  }
+}
+
+/* OFERTA — telefony: jedna kolumna (stack) */
+@media (max-width: 680px){
+  #ofertaCards.container.row.cols-3{
+    grid-template-columns: 1fr !important; /* nadpisuje 2×2 */
+    gap: 20px;                              /* odrobina oddechu między boksami */
+  }
+}
