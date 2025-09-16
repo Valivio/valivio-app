@@ -6,21 +6,30 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
   const pad2 = (n) => (n < 10 ? '0' + n : '' + n);
-  const escapeHTML = (s) =>
-    String(s)
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
+  function escapeHTML(s) {
+    s = String(s);
+    return s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+  async function fetchJSONFallback(paths) {
+    for (const p of paths) {
+      try {
+        const r = await fetch(p, { cache: 'no-store' });
+        if (r.ok) return await r.json();
+      } catch (_) {}
+    }
+    return null;
+  }
 
   // ---------- Shared: data.json (cache jednego pobrania) ----------
   let __DATA_PROMISE = null;
   function getSiteData() {
     if (!__DATA_PROMISE) {
-      __DATA_PROMISE = fetch('assets/data.json', { cache: 'no-store' })
-        .then((r) => r.json())
-        .catch(() => ({}));
+      __DATA_PROMISE = fetchJSONFallback(['assets/data.json', '/data.json']).then((j) => j || {});
     }
     return __DATA_PROMISE;
   }
@@ -65,23 +74,22 @@
   })();
 
   // ============================================================
-  // DLA KOGO – Slider poziomy: 3/2/1 widocznych, auto-scroll o 1
+  // DLA KOGO – Slider poziomy 3/2/1, auto-scroll o 1
   // ============================================================
   (function dlaKogoSlider() {
     const root = $('#dlaKogoCards');
     if (!root) return;
 
-    // Zapewnij wymaganą strukturę
+    // Zapewnij strukturę
     if (!root.querySelector('.dk-viewport') || !root.querySelector('.dk-track')) {
       root.innerHTML = '<div class="dk-viewport"><div class="dk-track"></div></div>';
     }
     const viewport = root.querySelector('.dk-viewport');
     const track = root.querySelector('.dk-track');
 
-    // Konfiguracja prędkości (ms)
     const DK_CYCLE_MS_DESKTOP = 5000;
     const DK_CYCLE_MS_TABLET = 4000;
-    const DK_CYCLE_MS_MOBILE = 2000; // <- zmień tu na 3000 jeśli chcesz wolniej na telefonie
+    const DK_CYCLE_MS_MOBILE = 2000;
 
     let items = [];
     let timer = null;
@@ -89,18 +97,16 @@
     function getGapPx() {
       const cs = getComputedStyle(track);
       const gap = cs.gap || '24px';
-      const m = gap.match(/([\d.]+)px/);
+      const m = /([\d.]+)px/.exec(gap);
       return m ? parseFloat(m[1]) : 24;
     }
 
     function stepScroll() {
       if (!viewport || !items.length) return;
       const firstCard = items[0].getBoundingClientRect();
-      const gap = getGapPx();
-      const step = Math.round(firstCard.width + gap);
+      const step = Math.round(firstCard.width + getGapPx());
       const maxScroll = track.scrollWidth - viewport.clientWidth;
       const next = Math.min(viewport.scrollLeft + step, maxScroll);
-
       if (viewport.scrollLeft >= maxScroll - 2) {
         viewport.scrollTo({ left: 0, behavior: 'instant' });
       } else {
@@ -124,13 +130,11 @@
       timer = null;
     }
 
-    // Pauzy/resize
     viewport.addEventListener('mouseenter', stopTimer);
     viewport.addEventListener('mouseleave', startTimer);
     window.addEventListener('visibilitychange', () => (document.hidden ? stopTimer() : startTimer()));
     window.addEventListener('resize', startTimer);
 
-    // Render z data.json
     getSiteData().then((json) => {
       const list = (json && json.dlaKogo) || [];
       track.innerHTML = list
@@ -160,7 +164,6 @@
     getSiteData().then((json) => {
       const list = (json && json.proces) || [];
       if (!Array.isArray(list) || !list.length) return;
-      // budujemy karty 1:1 z Twoim układem .card
       mount.innerHTML = list
         .map(
           (it) => `
@@ -174,7 +177,7 @@
   })();
 
   // ==================================
-  // OFERTA – render kart z data.json.oferta (2×2, równe pola)
+  // OFERTA – render kart z data.json.oferta (układ sztywny)
   // ==================================
   (function ofertaLoader() {
     const mount = $('#ofertaCards');
@@ -182,8 +185,6 @@
     getSiteData().then((json) => {
       const items = (json && json.oferta) || [];
       if (!Array.isArray(items) || !items.length) return;
-
-      // Wymagany układ: Title(1–2) + 1 linia + Desc(2) + 1 linia + Bullets(3) + 1 linia + Price
       mount.innerHTML = items
         .map((it) => {
           const title = escapeHTML(it.title || '');
@@ -210,47 +211,31 @@
   // ==================================
   // FAQ – treść z assets/faq.json
   // ==================================
-  (function faqLoader() {
-    const mount =
-      $('#faqList') || // <div id="faqList"></div>
-      $('#faq .faq-list') ||
-      null;
+  (async function faqLoader() {
+    const mount = $('#faqList') || $('#faq .faq-list');
     if (!mount) return;
-    fetch('assets/faq.json', { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((data) => {
-        const items = Array.isArray(data) ? data : data?.faq || [];
-        if (!items.length) {
-          mount.innerHTML = '<p class="muted">FAQ w przygotowaniu.</p>';
-          return;
-        }
-        mount.innerHTML = items
-          .map(
-            (it) => `
-            <details>
-              <summary>${escapeHTML(it.q || '')}</summary>
-              <div class="mt-12">${nl2p(it.a || '')}</div>
-            </details>`
-          )
-          .join('');
-      })
-      .catch(() => {
-        mount.innerHTML = '<p class="muted">Nie udało się wczytać FAQ.</p>';
-      });
-
-    function nl2p(txt) {
-      const safe = escapeHTML(txt)
-        .replace(/\n{2,}/g, '</p><p>')
-        .replace(/\n/g, '<br>');
-      return `<p>${safe}</p>`;
+    const data = await fetchJSONFallback(['assets/faq.json', '/faq.json']);
+    const items = Array.isArray(data) ? data : (data && data.faq) || [];
+    if (!items.length) {
+      mount.innerHTML = '<p class="muted">FAQ w przygotowaniu.</p>';
+      return;
     }
+    mount.innerHTML = items
+      .map(
+        (it) => `
+        <details>
+          <summary>${escapeHTML(it.q || '')}</summary>
+          <div class="mt-12">${escapeHTML(String(it.a || '')).replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br>')}</div>
+        </details>`
+      )
+      .join('');
   })();
 
   // ==================================
   // O MNIE – treść z assets/about.html/md
   // ==================================
   (function aboutLoader() {
-    const mount = $('#aboutMount'); // np. <main id="aboutMount"></main>
+    const mount = $('#aboutMount');
     if (!mount) return;
 
     fetch('assets/about.html', { cache: 'no-store' })
@@ -270,6 +255,8 @@
       });
 
     function mdToHTML(md) {
+      // bardzo prosty markdown->html (bez replaceAll)
+      md = String(md);
       let html = escapeHTML(md);
       html = html.replace(/^### (.*)$/gm, '<h3>$1</h3>');
       html = html.replace(/^## (.*)$/gm, '<h2>$1</h2>');
@@ -277,9 +264,11 @@
       html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
       html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
       html = html.replace(/^\s*[-*] (.*)$/gm, '<li>$1</li>');
-      html = html.replace(/(<li>.*<\/li>)(\s*(<li>.*<\/li>))+?/gs, (m) => `<ul>${m}</ul>`);
+      html = html.replace(/(<li>.*<\/li>)(\s*(<li>.*<\/li>))+?/gs, function (m) {
+        return '<ul>' + m + '</ul>';
+      });
       html = html.replace(/(?:\r?\n){2,}/g, '</p><p>');
-      return `<p>${html}</p>`;
+      return '<p>' + html + '</p>';
     }
   })();
 
@@ -320,15 +309,15 @@
     function showModal() {
       if (!selectedDate || !selectedTime) return;
       if (payInfo) payInfo.textContent = 'Termin: ' + selectedDate + ' godz. ' + selectedTime + '.';
-      modal?.classList.add('show');
-      backdrop?.classList.add('show');
+      if (modal) modal.classList.add('show');
+      if (backdrop) backdrop.classList.add('show');
     }
     function hideModal() {
-      modal?.classList.remove('show');
-      backdrop?.classList.remove('show');
+      if (modal) modal.classList.remove('show');
+      if (backdrop) backdrop.classList.remove('show');
     }
-    backdrop?.addEventListener('click', hideModal);
-    payClose?.addEventListener('click', hideModal);
+    if (backdrop) backdrop.addEventListener('click', hideModal);
+    if (payClose) payClose.addEventListener('click', hideModal);
     window.addEventListener('keydown', (e) => e.key === 'Escape' && hideModal());
 
     function renderDates() {
@@ -403,22 +392,24 @@
       updateSummary();
     });
 
-    payBtn?.addEventListener('click', async () => {
-      if (!selectedDate || !selectedTime) return;
-      try {
-        const res = await fetch('/api/book', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ date: selectedDate, time: selectedTime })
-        });
-        if (res.ok) showModal();
-        else {
-          let body = {};
-          try { body = await res.json(); } catch {}
-          alert((body && (body.message || body.error)) || 'Ten termin jest już zajęty. Wybierz inny.');
-        }
-      } catch { alert('Błąd połączenia. Spróbuj ponownie.'); }
-    });
+    if (payBtn) {
+      payBtn.addEventListener('click', async () => {
+        if (!selectedDate || !selectedTime) return;
+        try {
+          const res = await fetch('/api/book', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date: selectedDate, time: selectedTime })
+          });
+          if (res.ok) showModal();
+          else {
+            let body = {};
+            try { body = await res.json(); } catch {}
+            alert((body && (body.message || body.error)) || 'Ten termin jest już zajęty. Wybierz inny.');
+          }
+        } catch { alert('Błąd połączenia. Spróbuj ponownie.'); }
+      });
+    }
 
     // --- Filtr miesiąca ---
     function populateMonths() {
