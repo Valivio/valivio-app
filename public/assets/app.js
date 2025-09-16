@@ -6,6 +6,24 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
   const pad2 = (n) => (n < 10 ? '0' + n : '' + n);
+  const escapeHTML = (s) =>
+    String(s)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+
+  // ---------- Shared: data.json (cache jednego pobrania) ----------
+  let __DATA_PROMISE = null;
+  function getSiteData() {
+    if (!__DATA_PROMISE) {
+      __DATA_PROMISE = fetch('assets/data.json', { cache: 'no-store' })
+        .then((r) => r.json())
+        .catch(() => ({}));
+    }
+    return __DATA_PROMISE;
+  }
 
   // ---------- Rok w stopce ----------
   (function setYear() {
@@ -23,7 +41,6 @@
       const email = form.email.value.trim();
       const msg = form.message.value.trim();
       const status = $('#formStatus');
-
       if (!name || !email || !msg) {
         if (status) {
           status.textContent = 'Uzupełnij wszystkie pola.';
@@ -31,14 +48,11 @@
         }
         return;
       }
-
       const subject = encodeURIComponent('Zgłoszenie konsultacji – Valivio');
       const body = encodeURIComponent(
         `Imię i nazwisko: ${name}\nE-mail: ${email}\n\nWiadomość:\n${msg}`
       );
-
       window.location.href = `mailto:contact@valivio.example?subject=${subject}&body=${body}`;
-
       setTimeout(() => {
         form.reset();
         if (status) {
@@ -57,22 +71,41 @@
     const root = $('#dlaKogoCards');
     if (!root) return;
 
+    // Zapewnij wymaganą strukturę
+    if (!root.querySelector('.dk-viewport') || !root.querySelector('.dk-track')) {
+      root.innerHTML = '<div class="dk-viewport"><div class="dk-track"></div></div>';
+    }
     const viewport = root.querySelector('.dk-viewport');
     const track = root.querySelector('.dk-track');
 
     // Konfiguracja prędkości (ms)
     const DK_CYCLE_MS_DESKTOP = 5000;
     const DK_CYCLE_MS_TABLET = 4000;
-    const DK_CYCLE_MS_MOBILE = 2000; // <- zmień tu, jeśli chcesz np. 3000 na telefonie
+    const DK_CYCLE_MS_MOBILE = 2000; // <- zmień tu na 3000 jeśli chcesz wolniej na telefonie
 
     let items = [];
     let timer = null;
 
-    function visibleCount() {
-      const w = window.innerWidth;
-      if (w <= 680) return 1;
-      if (w <= 960) return 2;
-      return 3;
+    function getGapPx() {
+      const cs = getComputedStyle(track);
+      const gap = cs.gap || '24px';
+      const m = gap.match(/([\d.]+)px/);
+      return m ? parseFloat(m[1]) : 24;
+    }
+
+    function stepScroll() {
+      if (!viewport || !items.length) return;
+      const firstCard = items[0].getBoundingClientRect();
+      const gap = getGapPx();
+      const step = Math.round(firstCard.width + gap);
+      const maxScroll = track.scrollWidth - viewport.clientWidth;
+      const next = Math.min(viewport.scrollLeft + step, maxScroll);
+
+      if (viewport.scrollLeft >= maxScroll - 2) {
+        viewport.scrollTo({ left: 0, behavior: 'instant' });
+      } else {
+        viewport.scrollTo({ left: next, behavior: 'smooth' });
+      }
     }
 
     function cycleDelay() {
@@ -82,8 +115,24 @@
       return DK_CYCLE_MS_DESKTOP;
     }
 
-    function render(list) {
-      // list: [{title, text}, ...]
+    function startTimer() {
+      stopTimer();
+      timer = setInterval(stepScroll, cycleDelay());
+    }
+    function stopTimer() {
+      if (timer) clearInterval(timer);
+      timer = null;
+    }
+
+    // Pauzy/resize
+    viewport.addEventListener('mouseenter', stopTimer);
+    viewport.addEventListener('mouseleave', startTimer);
+    window.addEventListener('visibilitychange', () => (document.hidden ? stopTimer() : startTimer()));
+    window.addEventListener('resize', startTimer);
+
+    // Render z data.json
+    getSiteData().then((json) => {
+      const list = (json && json.dlaKogo) || [];
       track.innerHTML = list
         .map(
           (it) => `
@@ -96,75 +145,66 @@
         )
         .join('');
       items = $$('.dk-card', track);
-      // wyrównanie wejścia (klasa animacyjna z CSS – opcjonalnie)
       root.classList.add('dk-fade');
       requestAnimationFrame(() => root.classList.remove('dk-fade'));
-    }
-
-    function stepScroll() {
-      if (!viewport || !items.length) return;
-      const firstCard = items[0].getBoundingClientRect();
-      const gap = getGapPx();
-      const step = Math.round(firstCard.width + gap);
-      const maxScroll = track.scrollWidth - viewport.clientWidth;
-      const next = Math.min(viewport.scrollLeft + step, maxScroll);
-
-      if (viewport.scrollLeft >= maxScroll - 2) {
-        // restart do początku
-        viewport.scrollTo({ left: 0, behavior: 'instant' });
-      } else {
-        viewport.scrollTo({ left: next, behavior: 'smooth' });
-      }
-    }
-
-    function getGapPx() {
-      const cs = getComputedStyle(track);
-      const gap = cs.gap || '24px';
-      const m = gap.match(/([\d.]+)px/);
-      return m ? parseFloat(m[1]) : 24;
-    }
-
-    function startTimer() {
-      stopTimer();
-      timer = setInterval(stepScroll, cycleDelay());
-    }
-    function stopTimer() {
-      if (timer) clearInterval(timer);
-      timer = null;
-    }
-
-    // Pauza na hover (desktop)
-    viewport.addEventListener('mouseenter', stopTimer);
-    viewport.addEventListener('mouseleave', startTimer);
-    window.addEventListener('visibilitychange', () => {
-      if (document.hidden) stopTimer();
-      else startTimer();
-    });
-    window.addEventListener('resize', () => {
-      // po resize zresetuj timer (inne czasy) i dociśnij do „siatki”
       startTimer();
     });
+  })();
 
-    // Wczytaj treść z assets/data.json
-    fetch('assets/data.json', { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((json) => {
-        const list = (json && json.dlaKogo) || []; // [{title,text}, ...]
-        render(list);
-        startTimer();
-      })
-      .catch(() => {
-        // awaryjnie: jeśli brak pliku, nie psuj strony
-      });
+  // ==================================
+  // JAK PRACUJĘ – render kart z data.json.proces
+  // ==================================
+  (function procesLoader() {
+    const mount = $('#procesCards');
+    if (!mount) return;
+    getSiteData().then((json) => {
+      const list = (json && json.proces) || [];
+      if (!Array.isArray(list) || !list.length) return;
+      // budujemy karty 1:1 z Twoim układem .card
+      mount.innerHTML = list
+        .map(
+          (it) => `
+          <div class="card">
+            <h3 class="h3">${escapeHTML(it.title || '')}</h3>
+            <p class="meta">${escapeHTML(it.text || '')}</p>
+          </div>`
+        )
+        .join('');
+    });
+  })();
 
-    function escapeHTML(s) {
-      return String(s)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-    }
+  // ==================================
+  // OFERTA – render kart z data.json.oferta (2×2, równe pola)
+  // ==================================
+  (function ofertaLoader() {
+    const mount = $('#ofertaCards');
+    if (!mount) return;
+    getSiteData().then((json) => {
+      const items = (json && json.oferta) || [];
+      if (!Array.isArray(items) || !items.length) return;
+
+      // Wymagany układ: Title(1–2) + 1 linia + Desc(2) + 1 linia + Bullets(3) + 1 linia + Price
+      mount.innerHTML = items
+        .map((it) => {
+          const title = escapeHTML(it.title || '');
+          const desc = escapeHTML(it.desc || '');
+          const bullets = Array.isArray(it.bullets) ? it.bullets : [];
+          const price = escapeHTML(it.price || '');
+          const li = bullets
+            .slice(0, 3)
+            .map((b) => `<li>${escapeHTML(b)}</li>`)
+            .join('');
+          return `
+          <div class="card">
+            <h3 class="h3 of-title">${title}</h3>
+            <p class="meta of-desc">${desc}</p>
+            <ul class="of-list">${li}</ul>
+            <p class="of-price price">${price}</p>
+            <a class="btn" href="rezerwacja.html">Umów sesję</a>
+          </div>`;
+        })
+        .join('');
+    });
   })();
 
   // ==================================
@@ -172,11 +212,10 @@
   // ==================================
   (function faqLoader() {
     const mount =
-      $('#faqList') || // np. <div id="faqList"></div>
-      $('#faq .faq-list') || // fallback
+      $('#faqList') || // <div id="faqList"></div>
+      $('#faq .faq-list') ||
       null;
     if (!mount) return;
-
     fetch('assets/faq.json', { cache: 'no-store' })
       .then((r) => r.json())
       .then((data) => {
@@ -199,16 +238,10 @@
         mount.innerHTML = '<p class="muted">Nie udało się wczytać FAQ.</p>';
       });
 
-    function escapeHTML(s) {
-      return String(s)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-    }
     function nl2p(txt) {
-      const safe = escapeHTML(txt).replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br>');
+      const safe = escapeHTML(txt)
+        .replace(/\n{2,}/g, '</p><p>')
+        .replace(/\n/g, '<br>');
       return `<p>${safe}</p>`;
     }
   })();
@@ -220,14 +253,12 @@
     const mount = $('#aboutMount'); // np. <main id="aboutMount"></main>
     if (!mount) return;
 
-    // Spróbuj HTML, potem Markdown (prosty konwerter)
     fetch('assets/about.html', { cache: 'no-store' })
       .then((r) => (r.ok ? r.text() : Promise.reject()))
       .then((html) => {
         mount.innerHTML = html;
       })
       .catch(() => {
-        // Markdown fallback
         fetch('assets/about.md', { cache: 'no-store' })
           .then((r) => (r.ok ? r.text() : Promise.reject()))
           .then((md) => {
@@ -239,32 +270,23 @@
       });
 
     function mdToHTML(md) {
-      // bardzo prosty markdown->html (nagłówki #, akapity, bold/italic, listy)
-      const esc = (s) =>
-        s
-          .replaceAll('&', '&amp;')
-          .replaceAll('<', '&lt;')
-          .replaceAll('>', '&gt;');
-      let html = esc(md);
+      let html = escapeHTML(md);
       html = html.replace(/^### (.*)$/gm, '<h3>$1</h3>');
       html = html.replace(/^## (.*)$/gm, '<h2>$1</h2>');
       html = html.replace(/^# (.*)$/gm, '<h1>$1</h1>');
       html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
       html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-      // listy
       html = html.replace(/^\s*[-*] (.*)$/gm, '<li>$1</li>');
       html = html.replace(/(<li>.*<\/li>)(\s*(<li>.*<\/li>))+?/gs, (m) => `<ul>${m}</ul>`);
-      // akapity
       html = html.replace(/(?:\r?\n){2,}/g, '</p><p>');
-      html = `<p>${html}</p>`;
-      return html;
+      return `<p>${html}</p>`;
     }
   })();
 
   // ============================================================
   // REZERWACJA – filtr wg miesiąca + wybór dnia/godziny + modal
   // ============================================================
-  (function loadBooking() {
+  (function booking() {
     const mount = $('#bookMount');
     if (!mount) return;
 
@@ -292,10 +314,7 @@
       return date.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' });
     }
     function plMonthLabel(y, m) {
-      return new Date(y, m - 1, 1).toLocaleDateString('pl-PL', {
-        month: 'long',
-        year: 'numeric',
-      });
+      return new Date(y, m - 1, 1).toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
     }
 
     function showModal() {
@@ -310,9 +329,7 @@
     }
     backdrop?.addEventListener('click', hideModal);
     payClose?.addEventListener('click', hideModal);
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') hideModal();
-    });
+    window.addEventListener('keydown', (e) => e.key === 'Escape' && hideModal());
 
     function renderDates() {
       const keys = Object.keys(dataSlots || {});
@@ -329,8 +346,7 @@
         .sort((a, b) => a.date - b.date);
 
       if (!days.length) {
-        datesEl.innerHTML =
-          '<p class="muted">Brak terminów w wybranym miesiącu.</p>';
+        datesEl.innerHTML = '<p class="muted">Brak terminów w wybranym miesiącu.</p>';
         slotsEl.innerHTML = '';
         selectedDate = null;
         selectedTime = null;
@@ -340,8 +356,8 @@
 
       datesEl.innerHTML = days
         .map(
-          (d) =>
-            `<button class="date-btn" data-date="${d.iso}">
+          (d) => `
+            <button class="date-btn" data-date="${d.iso}">
               <span class="date-dow">${plDayName(d.date)}</span>
               <span class="date-day">${plDateLabel(d.date)}</span>
               <span class="date-meta">${d.count}&nbsp;termin(y)</span>
@@ -393,23 +409,15 @@
         const res = await fetch('/api/book', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ date: selectedDate, time: selectedTime }),
+          body: JSON.stringify({ date: selectedDate, time: selectedTime })
         });
-        if (res.ok) {
-          showModal();
-        } else {
+        if (res.ok) showModal();
+        else {
           let body = {};
-          try {
-            body = await res.json();
-          } catch {}
-          alert(
-            (body && (body.message || body.error)) ||
-              'Ten termin jest już zajęty. Wybierz inny.'
-          );
+          try { body = await res.json(); } catch {}
+          alert((body && (body.message || body.error)) || 'Ten termin jest już zajęty. Wybierz inny.');
         }
-      } catch {
-        alert('Błąd połączenia. Spróbuj ponownie.');
-      }
+      } catch { alert('Błąd połączenia. Spróbuj ponownie.'); }
     });
 
     // --- Filtr miesiąca ---
@@ -424,27 +432,21 @@
         const yy = y + Math.floor((m + i - 1) / 12);
         opts.push({ value: yy + '-' + pad2(mm), label: plMonthLabel(yy, mm) });
       }
-      monthSelect.innerHTML = opts
-        .map((o) => `<option value="${o.value}">${o.label}</option>`)
-        .join('');
+      monthSelect.innerHTML = opts.map((o) => `<option value="${o.value}">${o.label}</option>`).join('');
       monthSelect.value = y + '-' + pad2(m);
     }
 
     async function fetchMonth(ym) {
       const parts = (ym || '').split('-').map(Number);
-      const yy = parts[0],
-        mm = parts[1];
+      const yy = parts[0], mm = parts[1];
       if (!yy || !mm) return;
-
       const first = new Date(yy, mm - 1, 1);
       const last = new Date(yy, mm, 0);
-
-      const url =
-        '/api/slots?from=' + fmtISODate(first) + '&to=' + fmtISODate(last);
+      const url = '/api/slots?from=' + fmtISODate(first) + '&to=' + fmtISODate(last);
       try {
         const res = await fetch(url, { cache: 'no-store' });
         const json = await res.json();
-        dataSlots = json && json.slots ? json.slots : {};
+        dataSlots = (json && json.slots) ? json.slots : {};
         renderDates();
         const firstBtn = $('.date-btn', datesEl);
         if (firstBtn) firstBtn.click();
@@ -456,15 +458,11 @@
     if (monthSelect) {
       populateMonths();
       monthSelect.addEventListener('change', () => {
-        selectedDate = null;
-        selectedTime = null;
-        updateSummary();
+        selectedDate = null; selectedTime = null; updateSummary();
         fetchMonth(monthSelect.value);
       });
-      // start: bieżący miesiąc
-      fetchMonth(monthSelect.value);
+      fetchMonth(monthSelect.value); // start
     } else {
-      // awaryjnie: stary tryb (21 dni od dziś)
       const from = fmtISODate(new Date());
       fetch('/api/slots?from=' + from, { cache: 'no-store' })
         .then((r) => r.json())
@@ -475,8 +473,7 @@
           if (firstBtn) firstBtn.click();
         })
         .catch(() => {
-          datesEl.innerHTML =
-            '<p class="muted">Nie udało się wczytać terminów.</p>';
+          datesEl.innerHTML = '<p class="muted">Nie udało się wczytać terminów.</p>';
         });
     }
   })();
