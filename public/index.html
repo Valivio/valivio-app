@@ -49,7 +49,7 @@
       </div>
     </section>
 
-    <!-- DLA KOGO (karuzela, 3 widoczne / mobile 1) -->
+   <!-- === DLA KOGO === -->
 <section id="dla-kogo" class="tint-blue">
   <div class="container">
     <div class="section-head">
@@ -57,25 +57,25 @@
       <p>Realne wyzwania finansowe i zawodowe – bez moralizowania, z planem.</p>
     </div>
 
-    <!-- Tu JS sam wstawi .dk-viewport / .dk-track i karty z assets/data.json.dlaKogo -->
+    <!-- KONTENER NA KARTY (JS wypełni z assets/data.json.dlaKogo) -->
     <div id="dlaKogoCards"></div>
   </div>
 </section>
 
-<!-- ================= JAK PRACUJĘ ================= -->
+<!-- === JAK PRACUJĘ === -->
 <section id="proces" class="tint-warm">
   <div class="container">
     <div class="section-head">
       <h2 class="h2">Jak pracuję</h2>
-      <p>Diagnoza → decyzje → plan działania 30–60–90 dni. Konkretnie i poufnie.</p>
+      <p>Diagnoza → decyzje → plan 30–60–90 dni.</p>
     </div>
 
-    <!-- Karty procesu (JS wypełnia z assets/data.json.proces) -->
+    <!-- KONTENER NA KARTY (JS wypełni z assets/data.json.proces) -->
     <div id="procesCards" class="row cols-2"></div>
   </div>
 </section>
 
-<!-- ================= OFERTA ================= -->
+<!-- === OFERTA === -->
 <section id="oferta" class="tint-blue">
   <div class="container">
     <div class="section-head">
@@ -83,20 +83,23 @@
       <p>Spotkania 100% online. Konsultacje rozwojowe – nie zastępują psychoterapii.</p>
     </div>
 
-    <!-- Karty oferty (JS wypełnia z assets/data.json.oferta) -->
+    <!-- KONTENER NA KARTY (JS wypełni z assets/data.json.oferta) -->
     <div id="ofertaCards" class="row cols-2"></div>
   </div>
 </section>
 
-    <!-- FAQ (ładowane z assets/faq.json) -->
-    <section id="faq" class="tint-blue" aria-label="Najczęstsze pytania">
-      <div class="container section-head">
-        <h2 class="h2">FAQ</h2>
-        <p>Najczęstsze pytania o konsultacje, płatności i organizację spotkań.</p>
-      </div>
+<!-- === FAQ === -->
+<section id="faq" class="tint-warm">
+  <div class="container">
+    <div class="section-head">
+      <h2 class="h2">FAQ</h2>
+      <p>Najczęstsze pytania o współpracę i rezerwacje.</p>
+    </div>
 
-      <div id="faqList" class="container"></div>
-    </section>
+    <!-- KONTENER NA FAQ (JS wypełni z assets/faq.json) -->
+    <div id="faqList" class="faq-list"></div>
+  </div>
+</section>
 
     <!-- KONTAKT -->
     <section id="kontakt" class="tint-warm" aria-label="Kontakt i rezerwacja">
