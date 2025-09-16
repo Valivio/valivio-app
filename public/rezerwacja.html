@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Rezerwacja terminu – Valivio</title>
+  <meta name="description" content="Wybierz termin konsultacji online – Valivio.">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="assets/styles.css">
+  <style>
+    /* Minimalne style tylko dla kalendarza (żeby nie puchł globalny CSS) */
+    .book-wrap{padding:24px 0}
+    .dates-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:12px}
+    .date-btn{
+      border:1px solid var(--border); border-radius:12px; padding:10px; background:#fff; cursor:pointer;
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+    }
+    .date-btn[disabled]{opacity:.45; cursor:not-allowed}
+    .date-btn.active{outline:2px solid #000; outline-offset:-2px}
+    .date-dow{font-weight:600}
+    .slots{display:flex; flex-wrap:wrap; gap:10px; margin-top:16px}
+    .slot-btn{
+      border:1px solid var(--border); border-radius:999px; padding:8px 12px; background:#fff; cursor:pointer;
+    }
+    .slot-btn.active{background:#111; color:#fff; border-color:#111}
+    .summary{margin-top:16px}
+    /* Modal (placeholder płatności) */
+    .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; z-index:50}
+    .modal{position:fixed; inset:0; display:none; place-items:center; z-index:51}
+    .modal .panel{background:#fff; border:1px solid var(--border); border-radius:14px; padding:20px; max-width:480px; width:min(92vw,480px)}
+    .modal.show,.modal-backdrop.show{display:grid}
+    @media (max-width:960px){ .dates-grid{grid-template-columns:repeat(4,1fr)} }
+    @media (max-width:680px){ .dates-grid{grid-template-columns:repeat(2,1fr)} }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <nav class="nav">
+      <a href="index.html" class="brand"><span class="mark">V</span><span>Valivio</span></a>
+      <div class="navlinks">
+        <a href="index.html#dla-kogo">Dla kogo</a>
+        <a href="index.html#jak-pracuje">Jak pracuję</a>
+        <a href="index.html#oferta">Oferta</a>
+        <a href="index.html#faq">FAQ</a>
+        <a href="about.html">O mnie</a>
+      </div>
+      <a class="navcta" href="rezerwacja.html" aria-current="page" class="active">Umów konsultację</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="tint-warm">
+    <div class="container section-head">
+      <h1 class="h2">Rezerwacja terminu</h1>
+      <p>Wybierz dzień i godzinę konsultacji online. Płatność uruchomimy w kolejnym kroku (placeholder).</p>
+    </div>
+
+    <div class="container book-wrap">
+      <div id="bookMount" class="row cols-2">
+        <!-- lewa kolumna: dni -->
+        <div class="card">
+          <h3 class="h3">1. Wybierz dzień</h3>
+          <div id="dates" class="dates-grid mt-12" aria-live="polite"></div>
+        </div>
+        <!-- prawa kolumna: godziny + podsumowanie -->
+        <div class="card">
+          <h3 class="h3">2. Wybierz godzinę</h3>
+          <div id="slots" class="slots mt-12" aria-live="polite"></div>
+
+          <div class="summary mt-16">
+            <p class="meta" id="summaryText">Nie wybrano terminu.</p>
+            <button id="payBtn" class="btn" disabled>Kontynuuj do płatności</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="container">
+    <p class="fine">© <span id="year"></span> Valivio. Wszelkie prawa zastrzeżone.</p>
+  </div>
+</footer>
+
+<!-- Modal „płatność wkrótce” -->
+<div class="modal-backdrop" id="payBackdrop"></div>
+<div class="modal" id="payModal" role="dialog" aria-modal="true" aria-labelledby="payTitle">
+  <div class="panel">
+    <h3 class="h3" id="payTitle">Płatność – wkrótce</h3>
+    <p class="mt-12" id="payInfo">Wybrany termin…</p>
+    <p class="muted mt-12">W kolejnym kroku podłączymy płatność (np. BLIK/Przelewy24/Stripe). Teraz to tylko podgląd.</p>
+    <div class="mt-16" style="display:flex; gap:10px; justify-content:flex-end">
+      <button class="btn ghost" id="payClose">Zamknij</button>
+      <button class="btn" disabled>Zapłać (wkrótce)</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>
