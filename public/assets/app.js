@@ -322,25 +322,35 @@ function loadBooking(){
   window.addEventListener('keydown', function(e){ if (e.key === 'Escape') hideModal(); });
 
   // === KLUCZOWA ZMIANA: pokazujemy tylko faktycznie dostępne dni ===
-  function renderDates(){
-    var keys = Object.keys(dataSlots || {});
-    var today = new Date(); today.setHours(0,0,0,0);
+ function renderDates(){
+  var keys = Object.keys(dataSlots || {});
+  var today = new Date(); today.setHours(0,0,0,0);
 
-    var days = keys.map(function(k){
-      var parts = k.split('-').map(Number);
-      var dt = new Date(parts[0], parts[1]-1, parts[2]);
-      return { iso: k, date: dt, count: (dataSlots[k] || []).length };
-    }).filter(function(x){
-      return x.date >= today && x.count > 0;
-    }).sort(function(a,b){ return a.date - b.date; });
+  var days = keys.map(function(k){
+    var parts = k.split('-').map(Number);
+    var dt = new Date(parts[0], parts[1]-1, parts[2]);
+    return { iso: k, date: dt, count: (dataSlots[k] || []).length };
+  }).filter(function(x){
+    return x.date >= today && x.count > 0;
+  }).sort(function(a,b){ return a.date - b.date; });
 
-    if (!days.length) {
-      datesEl.innerHTML = '<p class="muted">Brak nadchodzących terminów. Wróć później.</p>';
-      slotsEl.innerHTML = '';
-      selectedDate = null; selectedTime = null;
-      updateSummary();
-      return;
-    }
+  if (!days.length) {
+    datesEl.innerHTML = '<p class="muted">Brak nadchodzących terminów. Wróć później.</p>';
+    slotsEl.innerHTML = '';
+    selectedDate = null; selectedTime = null;
+    updateSummary();
+    return;
+  }
+
+  datesEl.innerHTML = days.map(function(d){
+    return ''+
+      '<button class="date-btn" data-date="'+d.iso+'">'+
+        '<span class="date-dow">'+ plDayName(d.date) +'</span>'+
+        '<span class="date-day">'+ plDateLabel(d.date) +'</span>'+
+        '<span class="date-meta">'+ d.count +'&nbsp;termin(y)</span>'+
+      '</button>';
+  }).join('');
+}
 
     datesEl.innerHTML = days.map(function(d){
       return ''+
