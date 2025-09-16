@@ -1,105 +1,106 @@
 <!doctype html>
 <html lang="pl">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Rezerwacja terminu – Valivio</title>
-  <meta name="description" content="Wybierz termin konsultacji online – Valivio.">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="assets/styles.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Umów wizytę – Valivio</title>
+  <link rel="stylesheet" href="assets/styles.css" />
   <style>
-    /* Minimalne style tylko dla kalendarza (żeby nie puchł globalny CSS) */
-    .book-wrap{padding:24px 0}
-    .dates-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:12px}
-    .date-btn{
-      border:1px solid var(--border); border-radius:12px; padding:10px; background:#fff; cursor:pointer;
-      display:flex; flex-direction:column; align-items:center; gap:4px;
+    /* ——— Styl tylko dla tej podstrony rezerwacji ——— */
+    .book-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:24px}
+    @media (max-width:960px){.book-grid{grid-template-columns:1fr}}
+    .dates-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+      gap:12px;
     }
-    .date-btn[disabled]{opacity:.45; cursor:not-allowed}
-    .date-btn.active{outline:2px solid #000; outline-offset:-2px}
-    .date-dow{font-weight:600}
-    .slots{display:flex; flex-wrap:wrap; gap:10px; margin-top:16px}
-    .slot-btn{
-      border:1px solid var(--border); border-radius:999px; padding:8px 12px; background:#fff; cursor:pointer;
+    .slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:10px}
+    .date-btn,.slot-btn{
+      border:1px solid var(--border); background:#fff; color:#111;
+      border-radius:12px; padding:10px 12px; text-align:center; cursor:pointer
     }
-    .slot-btn.active{background:#111; color:#fff; border-color:#111}
-    .summary{margin-top:16px}
-    /* Modal (placeholder płatności) */
-    .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; z-index:50}
-    .modal{position:fixed; inset:0; display:none; place-items:center; z-index:51}
-    .modal .panel{background:#fff; border:1px solid var(--border); border-radius:14px; padding:20px; max-width:480px; width:min(92vw,480px)}
-    .modal.show,.modal-backdrop.show{display:grid}
-    @media (max-width:960px){ .dates-grid{grid-template-columns:repeat(4,1fr)} }
-    @media (max-width:680px){ .dates-grid{grid-template-columns:repeat(2,1fr)} }
+    .date-btn .date-dow{display:block; font-weight:700}
+    .date-btn.active,.slot-btn.active{outline:2px solid #000; outline-offset:1px}
+    .btn[disabled]{opacity:.5; pointer-events:none}
+    .btn.accent{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
+    /* Modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.2s;z-index:40}
+    .modal-backdrop.show{opacity:1;pointer-events:auto}
+    .modal{position:fixed;inset:0;display:grid;place-items:center;opacity:0;pointer-events:none;transition:.2s;z-index:41}
+    .modal.show{opacity:1;pointer-events:auto}
+    .modal-card{background:#fff;border:1px solid var(--border);border-radius:14px;max-width:520px;width:92vw;padding:20px}
+    .modal-card .btn{margin-top:12px}
   </style>
 </head>
 <body>
 
-<header>
-  <div class="container">
-    <nav class="nav">
-      <a href="index.html" class="brand"><span class="mark">V</span><span>Valivio</span></a>
-      <div class="navlinks">
+  <!-- NAV (ten sam co na stronie głównej) -->
+  <header>
+    <div class="container nav">
+      <a class="brand" href="index.html">
+        <span class="mark">V</span> Valivio
+      </a>
+      <nav class="navlinks">
         <a href="index.html#dla-kogo">Dla kogo</a>
-        <a href="index.html#jak-pracuje">Jak pracuję</a>
+        <a href="index.html#proces">Jak pracuję</a>
         <a href="index.html#oferta">Oferta</a>
         <a href="index.html#faq">FAQ</a>
+        <a href="index.html#kontakt">Kontakt</a>
         <a href="about.html">O mnie</a>
-      </div>
-      <a class="navcta" href="rezerwacja.html" aria-current="page" class="active">Umów konsultację</a>
-    </nav>
-  </div>
-</header>
-
-<main>
-  <section class="tint-warm">
-    <div class="container section-head">
-      <h1 class="h2">Rezerwacja terminu</h1>
-      <p>Wybierz dzień i godzinę konsultacji online. Płatność uruchomimy w kolejnym kroku (placeholder).</p>
+      </nav>
+      <a class="navcta" href="rezerwacja.html">Umów konsultację</a>
     </div>
+  </header>
 
-    <div class="container book-wrap">
-      <div id="bookMount" class="row cols-2">
-        <!-- lewa kolumna: dni -->
-        <div class="card">
-          <h3 class="h3">1. Wybierz dzień</h3>
-          <div id="dates" class="dates-grid mt-12" aria-live="polite"></div>
+  <main>
+    <!-- Sekcja rezerwacji -->
+    <section id="book" class="tint-blue">
+      <div class="container" id="bookMount">
+        <div class="section-head">
+          <h2 class="h2">Rezerwacja terminu</h2>
+          <p>Wybierz dzień, potem godzinę. Zarezerwujemy slot i pokażemy potwierdzenie.<br>(Płatność online dodamy w kolejnym etapie.)</p>
         </div>
-        <!-- prawa kolumna: godziny + podsumowanie -->
-        <div class="card">
-          <h3 class="h3">2. Wybierz godzinę</h3>
-          <div id="slots" class="slots mt-12" aria-live="polite"></div>
 
-          <div class="summary mt-16">
-            <p class="meta" id="summaryText">Nie wybrano terminu.</p>
-            <button id="payBtn" class="btn" disabled>Kontynuuj do płatności</button>
+        <div class="book-grid">
+          <!-- Lewa kolumna: dostępne dni -->
+          <div class="card">
+            <h3 class="h3">Wybierz dzień</h3>
+            <div id="dates" class="dates-grid">
+              <!-- wypełnia app.js / loadBooking() -->
+            </div>
+          </div>
+
+          <!-- Prawa kolumna: godziny + podsumowanie -->
+          <div class="card">
+            <h3 class="h3">Wybierz godzinę</h3>
+            <div id="slots" class="slot-grid"></div>
+            <hr class="mt-12" />
+            <p id="summaryText" class="meta">Nie wybrano terminu.</p>
+            <button id="payBtn" class="btn accent" disabled>Kontynuuj do potwierdzenia</button>
           </div>
         </div>
       </div>
-    </div>
-  </section>
-</main>
+    </section>
+  </main>
 
-<footer>
-  <div class="container">
-    <p class="fine">© <span id="year"></span> Valivio. Wszelkie prawa zastrzeżone.</p>
-  </div>
-</footer>
-
-<!-- Modal „płatność wkrótce” -->
-<div class="modal-backdrop" id="payBackdrop"></div>
-<div class="modal" id="payModal" role="dialog" aria-modal="true" aria-labelledby="payTitle">
-  <div class="panel">
-    <h3 class="h3" id="payTitle">Płatność – wkrótce</h3>
-    <p class="mt-12" id="payInfo">Wybrany termin…</p>
-    <p class="muted mt-12">W kolejnym kroku podłączymy płatność (np. BLIK/Przelewy24/Stripe). Teraz to tylko podgląd.</p>
-    <div class="mt-16" style="display:flex; gap:10px; justify-content:flex-end">
-      <button class="btn ghost" id="payClose">Zamknij</button>
-      <button class="btn" disabled>Zapłać (wkrótce)</button>
+  <!-- Modal potwierdzenia -->
+  <div id="payBackdrop" class="modal-backdrop"></div>
+  <div id="payModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="payTitle">
+    <div class="modal-card">
+      <h3 id="payTitle" class="h3">Rezerwacja zapisana</h3>
+      <p id="payInfo" class="mt-8">Termin: —</p>
+      <p class="meta">W kolejnym kroku dołączymy płatność online. Teraz otrzymasz potwierdzenie na ekranie.</p>
+      <button id="payClose" class="btn">Zamknij</button>
     </div>
   </div>
-</div>
 
-<script src="assets/app.js" defer></script>
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <p class="fine">© <span id="year">2025</span> Valivio. Wszystkie prawa zastrzeżone.</p>
+    </div>
+  </footer>
+
+  <script src="assets/app.js"></script>
 </body>
 </html>
