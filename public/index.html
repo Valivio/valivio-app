@@ -50,37 +50,43 @@
     </section>
 
     <!-- DLA KOGO (karuzela, 3 widoczne / mobile 1) -->
-    <section id="dla-kogo" class="tint-blue" aria-label="Dla kogo jest Valivio">
-      <div class="container section-head">
-        <h2 class="h2">Dla kogo?</h2>
-        <p>Przykładowe sytuacje klientów — przewijaj horyzontalnie na urządzeniach mobilnych.</p>
-      </div>
+<section id="dla-kogo" class="tint-blue">
+  <div class="container">
+    <div class="section-head">
+      <h2 class="h2">Dla kogo</h2>
+      <p>Realne wyzwania finansowe i zawodowe – bez moralizowania, z planem.</p>
+    </div>
 
-      <!-- Mount dla karuzeli – JS sam nada strukturę, usuwa klasy grid -->
-      <div id="dlaKogoCards" class="container row cols-3"></div>
-    </section>
+    <!-- Tu JS sam wstawi .dk-viewport / .dk-track i karty z assets/data.json.dlaKogo -->
+    <div id="dlaKogoCards"></div>
+  </div>
+</section>
 
-    <!-- JAK PRACUJĘ -->
-    <section id="jak-pracuje" class="tint-warm" aria-label="Jak pracuję">
-      <div class="container section-head">
-        <h2 class="h2">Jak pracuję</h2>
-        <p>Prosto i konkretnie: diagnoza → plan 30–60–90 → wdrożenie → monitorowanie.</p>
-      </div>
+<!-- ================= JAK PRACUJĘ ================= -->
+<section id="proces" class="tint-warm">
+  <div class="container">
+    <div class="section-head">
+      <h2 class="h2">Jak pracuję</h2>
+      <p>Diagnoza → decyzje → plan działania 30–60–90 dni. Konkretnie i poufnie.</p>
+    </div>
 
-      <!-- JS wstrzyknie 4 karty z data.json -->
-      <div id="procesCards" class="container row cols-2"></div>
-    </section>
+    <!-- Karty procesu (JS wypełnia z assets/data.json.proces) -->
+    <div id="procesCards" class="row cols-2"></div>
+  </div>
+</section>
 
-    <!-- OFERTA (render z data.json; 2×2 również na desktopie) -->
-    <section id="oferta" aria-label="Oferta i cennik">
-      <div class="container section-head">
-        <h2 class="h2">Oferta</h2>
-        <p>Spotkania 100% online. Konsultacje nie zastępują psychoterapii; to praca rozwojowo-decyzyjna.</p>
-      </div>
+<!-- ================= OFERTA ================= -->
+<section id="oferta" class="tint-blue">
+  <div class="container">
+    <div class="section-head">
+      <h2 class="h2">Oferta</h2>
+      <p>Spotkania 100% online. Konsultacje rozwojowe – nie zastępują psychoterapii.</p>
+    </div>
 
-      <!-- Uwaga: pozostawiamy klasy 'row cols-3' — CSS nadpisuje na 2 kolumny -->
-      <div id="ofertaCards" class="container row cols-3"></div>
-    </section>
+    <!-- Karty oferty (JS wypełnia z assets/data.json.oferta) -->
+    <div id="ofertaCards" class="row cols-2"></div>
+  </div>
+</section>
 
     <!-- FAQ (ładowane z assets/faq.json) -->
     <section id="faq" class="tint-blue" aria-label="Najczęstsze pytania">
