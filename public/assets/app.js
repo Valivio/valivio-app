@@ -209,23 +209,11 @@
   })();
 
 // ==================================
-// FAQ – treść z assets/faq.json
+// FAQ – ładowanie z assets/faq.json (obsługa: items | faq | [])
 // ==================================
 (async function faqLoader() {
   const mount = document.querySelector('#faqList') || document.querySelector('#faq .faq-list');
   if (!mount) return;
-
-  async function fetchJSONFallback(paths) {
-    for (const p of paths) {
-      try {
-        const res = await fetch(p, { cache: 'no-store' });
-        if (!res.ok) continue;
-        const txt = await res.text();
-        try { return JSON.parse(txt); } catch {}
-      } catch {}
-    }
-    return null;
-  }
 
   function esc(s) {
     s = String(s);
@@ -234,18 +222,47 @@
             .replace(/'/g,'&#39;');
   }
 
-  const data = await fetchJSONFallback(['assets/faq.json', '/faq.json']);
-  // <<< kluczowa linia – obsługa items, faq lub czystej tablicy
-  const items = Array.isArray(data) ? data : (data && (data.faq || data.items)) || [];
+  async function fetchAsJSON(url) {
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      const text = await res.text();
+      try { return { ok: res.ok, data: JSON.parse(text) }; }
+      catch { return { ok: res.ok, data: null, raw: text }; }
+    } catch (e) {
+      return { ok: false, err: String(e) };
+    }
+  }
+
+  // próbuj względnej i bezwzględnej ścieżki
+  const tries = ['assets/faq.json', '/assets/faq.json', '/faq.json'];
+  let payload = null, lastDiag = null;
+
+  for (const u of tries) {
+    const r = await fetchAsJSON(u);
+    if (r.ok && r.data) { payload = r.data; break; }
+    lastDiag = r;
+  }
+
+  const items = Array.isArray(payload) ? payload
+               : (payload && (payload.items || payload.faq)) || [];
 
   if (!items.length) {
-    mount.innerHTML = '<p class="muted">FAQ w przygotowaniu.</p>';
+    // pokaż diagnozę na stronie – szybciej znajdziemy problem
+    const diag = lastDiag
+      ? (lastDiag.err
+          ? 'Błąd sieci: ' + esc(lastDiag.err)
+          : ('Odebrano nie-JSON (status OK=' + lastDiag.ok + '). ' +
+             (lastDiag.raw ? 'Pierwsze 120 znaków: <code>' + esc(lastDiag.raw.slice(0,120)) + '…</code>' : '')))
+      : 'Brak danych.';
+    mount.innerHTML =
+      '<p class="muted">FAQ w przygotowaniu.</p>' +
+      '<p class="muted" style="font-size:12px">Diag: ' + diag + '</p>';
     return;
   }
 
   mount.innerHTML = items.map(it => {
     const q = esc(it.q || '');
-    const a = esc(String(it.a || '')).replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br>');
+    const a = esc(String(it.a || '')).replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br>');
     return `<details>
       <summary>${q}</summary>
       <div class="mt-12"><p>${a}</p></div>
