@@ -30,6 +30,37 @@
     .modal.show{opacity:1;pointer-events:auto}
     .modal-card{background:#fff;border:1px solid var(--border);border-radius:14px;max-width:520px;width:92vw;padding:20px}
     .modal-card .btn{margin-top:12px}
+
+    /* Uporządkowany układ i spójne rozmiary w kafelkach dat */
+.date-btn{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;                 /* odstęp między wierszami */
+  text-align:center;
+}
+
+.date-btn .date-dow{
+  display:block;
+  font-weight:700;
+  font-size:.9rem;         /* mniejszy podpis dnia tygodnia */
+  text-transform:capitalize;
+  opacity:.75;
+}
+
+.date-btn .date-day{
+  display:block;
+  font-size:1rem;          /* TA SAMA wielkość co meta */
+  font-weight:600;
+  line-height:1.1;
+}
+
+.date-btn .date-meta{
+  display:block;
+  font-size:1rem;          /* TA SAMA wielkość co data */
+  color:var(--muted);
+  line-height:1.1;
+}
   </style>
 </head>
 <body>
