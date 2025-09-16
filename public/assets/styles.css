@@ -325,3 +325,41 @@ footer{border-top:1px solid var(--border); padding:40px 0 64px}
     gap: 20px;                              /* odrobina oddechu między boksami */
   }
 }
+
+/* === DLA KOGO — slider 3→2→1, auto-scroll o 1 === */
+:root{ --dk-gap:24px; }
+
+#dlaKogoCards .dk-viewport{
+  overflow:hidden;         /* ukryj przewijanie poziome */
+  -webkit-overflow-scrolling: touch;
+}
+
+#dlaKogoCards .dk-track{
+  --dk-visible:3;          /* domyślnie: 3 karty na desktopie */
+  display:flex;
+  gap:var(--dk-gap);
+  align-items:stretch;
+  padding: 0 2px;          /* mikro-oddech przy krawędziach */
+}
+
+#dlaKogoCards .dk-card{
+  /* szerokość pojedynczej karty = 1 / visible */
+  flex:0 0 calc( (100% - (var(--dk-visible) - 1) * var(--dk-gap)) / var(--dk-visible) );
+  display:flex;            /* pozwala rozciągnąć .card na pełną wysokość */
+}
+
+#dlaKogoCards .dk-card .card{
+  display:flex; flex-direction:column; height:100%;
+}
+
+/* Animacja wejścia (opcjonalnie) */
+#dlaKogoCards{ transition: opacity .28s ease, transform .28s ease; }
+#dlaKogoCards.dk-fade{ opacity:.0; transform: translateY(6px); }
+
+/* Responsywność: 3 → 2 → 1 */
+@media (max-width:960px){
+  #dlaKogoCards .dk-track{ --dk-visible:2; }
+}
+@media (max-width:680px){
+  #dlaKogoCards .dk-track{ --dk-visible:1; }
+}
