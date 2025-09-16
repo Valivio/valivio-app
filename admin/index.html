@@ -1,107 +1,187 @@
 <!doctype html>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Valivio – Panel</title>
-<style>
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:20px}
-  input,button{padding:8px;font-size:16px}
-  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-  table{border-collapse:collapse;width:100%;margin-top:20px}
-  th,td{border:1px solid #ddd;padding:8px}
-</style>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Valivio – Panel</title>
+  <style>
+    :root { color-scheme: light; }
+    body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;margin:20px}
+    h1{margin:0 0 16px}
+    h2{margin:20px 0 8px;font-size:18px}
+    input,select,button{padding:8px;font-size:16px}
+    .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+    .msg{margin-left:8px;font-size:14px;color:#555}
+    table{border-collapse:collapse;width:100%;margin-top:20px}
+    th,td{border:1px solid #ddd;padding:8px;text-align:left;vertical-align:top}
+    .muted{color:#666}
+    .danger{color:#9b1c1c}
+    .ok{color:#0a7a33}
+  </style>
+</head>
+<body>
 
-<h1>Panel – terminy</h1>
+  <h1>Panel – terminy</h1>
 
-<section id="login">
-  <div class="row">
-    <input id="email" placeholder="email">
-    <input id="pass" type="password" placeholder="hasło">
-    <button id="btnLogin">Zaloguj</button>
-    <span id="authMsg"></span>
-  </div>
-</section>
+  <!-- Logowanie -->
+  <section id="login">
+    <h2>Zaloguj się</h2>
+    <div class="row">
+      <input id="email" type="email" placeholder="e-mail" autocomplete="username" />
+      <input id="pass" type="password" placeholder="hasło" autocomplete="current-password" />
+      <button id="btnLogin">Zaloguj</button>
+      <span id="authMsg" class="msg"></span>
+    </div>
+  </section>
 
-<section id="manage" style="display:none">
-  <h2>Dodaj slot</h2>
-  <div class="row">
-    <input id="date" type="date">
-    <select id="time" aria-label="Godzina (24h)"></select>
-    <input id="dur" type="number" min="15" step="15" value="60">
-    <button id="add">Dodaj</button>
-  </div>
+  <!-- Zarządzanie slotami -->
+  <section id="manage" style="display:none">
+    <h2>Dodaj slot</h2>
+    <div class="row">
+      <label for="date">Data:</label>
+      <input id="date" type="date" />
 
-  <h2>Twoje sloty</h2>
-  <table id="tbl"><thead><tr><th>ID</th><th>Data</th><th>Godzina</th><th>Akcje</th></tr></thead><tbody></tbody></table>
-</section>
+      <label for="time">Godzina (24h):</label>
+      <!-- Lista godzin w formacie 24h, generowana skryptem -->
+      <select id="time" aria-label="Godzina (24h)"></select>
 
-<script>
-const API = (p,opt)=>fetch(p,Object.assign({credentials:'include'},opt||{}));
-const $ = id => document.getElementById(id);
+      <label for="dur">Czas (min):</label>
+      <input id="dur" type="number" min="15" step="15" value="60" style="width:90px" />
 
-function buildTimeOptions(){
-  const sel = $('time');
-  if(!sel) return;
-  sel.innerHTML = '';
-  const start = 7*60;   // 07:00
-  const end   = 21*60;  // 21:00
-  const step  = 30;     // co 30 minut (zmień na 15 jeśli chcesz)
-  for(let m=start; m<=end; m+=step){
-    const h = Math.floor(m/60), min = m%60;
-    const label = String(h).padStart(2,'0') + ':' + String(min).padStart(2,'0');
-    const opt = document.createElement('option');
-    opt.value = label; opt.textContent = label;
-    sel.appendChild(opt);
-  }
-}
+      <button id="add">Dodaj</button>
+      <span id="addMsg" class="msg"></span>
+    </div>
 
-$('btnLogin').onclick = async ()=>{
-  const res = await API('/api/login',{
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ email: $('email').value.trim(), password: $('pass').value })
-  });
-  if(res.ok){ $('login').style.display='none'; $('manage').style.display='block'; loadSlots(); }
-  else {$('authMsg').textContent='Błąd logowania';}
-};
+    <h2>Twoje sloty</h2>
+    <table id="tbl">
+      <thead>
+        <tr><th>ID</th><th>Data</th><th>Godzina</th><th>Akcje</th></tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="4" class="muted">Brak danych…</td></tr>
+      </tbody>
+    </table>
+  </section>
 
-$('add').onclick = async ()=>{
-  const date = $('date').value;
-  const time = $('time').value;
-  const duration = Number($('dur').value || 60);
+  <script>
+    // Proste utilsy
+    const API = (p,opt)=>fetch(p,Object.assign({credentials:'include'},opt||{}));
+    const $ = id => document.getElementById(id);
 
-  const r = await API('/api/slots', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ date, time, duration })
-  });
-
-  if (r.ok) { loadSlots(); return; }
-
-  // pokaż dokładny błąd z API
-  let msg = 'Nie udało się dodać';
-  try {
-    const body = await r.json();
-    if (body && (body.message || body.error)) {
-      msg += ` — ${body.message || body.error}`;
+    // Generator listy godzin 24h (07:00–21:00 co 30 min)
+    function buildTimeOptions(){
+      const sel = $('time');
+      if(!sel) return;
+      sel.innerHTML = '';
+      const START_MIN = 7*60;   // 07:00
+      const END_MIN   = 21*60;  // 21:00
+      const STEP      = 30;     // co 30 min (zmień na 15 jeśli chcesz)
+      for(let m=START_MIN; m<=END_MIN; m+=STEP){
+        const h = String(Math.floor(m/60)).padStart(2,'0');
+        const min = String(m%60).padStart(2,'0');
+        const label = `${h}:${min}`;
+        const opt = document.createElement('option');
+        opt.value = label; opt.textContent = label;
+        sel.appendChild(opt);
+      }
     }
-  } catch {}
-  alert(msg);
-};
 
-async function loadSlots(){
-  const res = await API('/api/admin/slots'); const rows = await res.json();
-  const tbody = document.querySelector('#tbl tbody');
-  tbody.innerHTML = rows.map(r=>{
-    const d=new Date(r.startAt);
-    const pl = new Intl.DateTimeFormat('pl-PL',{timeZone:'Europe/Warsaw',dateStyle:'medium',timeStyle:'short'}).format(d);
-    const [date, time]=pl.split(', ');
-    return `<tr><td>${r.id}</td><td>${date||''}</td><td>${time||''}</td>
-      <td><button data-id="${r.id}" class="del">Usuń</button></td></tr>`;
-  }).join('');
-  tbody.onclick = async e=>{
-    const btn=e.target.closest('.del'); if(!btn) return;
-    if(!confirm('Usunąć termin?')) return;
-    const r=await API('/api/slots/'+btn.getAttribute('data-id'),{method:'DELETE'});
-    if(r.ok) loadSlots();
-  };
-}
-</script>
+    // Logowanie
+    $('btnLogin').onclick = async ()=>{
+      $('authMsg').textContent = '';
+      const email = ($('email').value || '').trim();
+      const password = $('pass').value || '';
+      if(!email || !password){
+        $('authMsg').textContent = 'Podaj e-mail i hasło.'; $('authMsg').className='msg danger';
+        return;
+      }
+      const res = await API('/api/login',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ email, password })
+      });
+      if(res.ok){
+        $('authMsg').textContent = 'Zalogowano.'; $('authMsg').className='msg ok';
+        $('login').style.display='none';
+        $('manage').style.display='block';
+        buildTimeOptions();     // << lista 24h
+        loadSlots();
+      } else {
+        $('authMsg').textContent='Błędny e-mail lub hasło.'; $('authMsg').className='msg danger';
+      }
+    };
+
+    // Dodawanie slotu
+    $('add').onclick = async ()=>{
+      $('addMsg').textContent = '';
+      const date = $('date').value;
+      const time = $('time').value; // już w formacie 24h
+      const duration = Number($('dur').value || 60);
+
+      const r = await API('/api/slots', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ date, time, duration })
+      });
+
+      if (r.ok) {
+        $('addMsg').textContent = 'Dodano.'; $('addMsg').className='msg ok';
+        $('date').value=''; // opcjonalny reset
+        loadSlots();
+        return;
+      }
+
+      // pokaż szczegół błędu z backendu
+      let msg = 'Nie udało się dodać';
+      try {
+        const body = await r.json();
+        if (body && (body.message || body.error)) {
+          msg += ` — ${body.message || body.error}`;
+        }
+      } catch {}
+      $('addMsg').textContent = msg; $('addMsg').className='msg danger';
+    };
+
+    // Ładowanie / usuwanie slotów
+    async function loadSlots(){
+      const res = await API('/api/admin/slots');
+      const tbody = $('#tbl').querySelector('tbody');
+
+      if (!res.ok) {
+        tbody.innerHTML = `<tr><td colspan="4" class="danger">Nie udało się pobrać slotów.</td></tr>`;
+        return;
+      }
+
+      const rows = await res.json();
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="muted">Brak slotów.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(r=>{
+        const d = new Date(r.startAt);
+        // Format w strefie PL
+        const pl = new Intl.DateTimeFormat('pl-PL',
+          { timeZone:'Europe/Warsaw', dateStyle:'medium', timeStyle:'short' }
+        ).format(d);
+        const [date, time] = pl.split(', ');
+        return `<tr>
+          <td>${r.id}</td>
+          <td>${date || ''}</td>
+          <td>${time || ''}</td>
+          <td><button data-id="${r.id}" class="del">Usuń</button></td>
+        </tr>`;
+      }).join('');
+
+      tbody.onclick = async (e)=>{
+        const btn = e.target.closest('.del'); if(!btn) return;
+        if (!confirm('Usunąć ten termin?')) return;
+        const id = btn.getAttribute('data-id');
+        const r = await API('/api/slots/'+id, { method:'DELETE' });
+        if (r.ok) loadSlots();
+        else alert('Nie udało się usunąć.');
+      };
+    }
+  </script>
+</body>
+</html>
