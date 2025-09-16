@@ -144,7 +144,10 @@
 
     // Ładowanie / usuwanie slotów
     async function loadSlots(){
-      const res = await API('/api/admin/slots');
+      const res = await API('/api/admin/slots?v=' + Date.now(), {
+  headers: { 'Accept': 'application/json' },
+  cache: 'no-store'
+});
       const tbody = $('#tbl').querySelector('tbody');
 
       if (!res.ok) {
