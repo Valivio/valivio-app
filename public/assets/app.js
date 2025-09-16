@@ -326,31 +326,35 @@ function loadBooking(){
   window.addEventListener('keydown', function(e){ if (e.key === 'Escape') hideModal(); });
 
   function renderDates(){
-    var today = new Date(); today.setHours(0,0,0,0);
-    var days = [];
-    for (var i=0;i<21;i++){
-      var d = new Date(today); d.setDate(today.getDate()+i);
-      days.push(d);
-    }
-    datesEl.innerHTML = days.map(function(d){
-      var iso = fmtISODate(d);
-      var disabled = d < today;
-      return ''+
-        '<button class="date-btn" data-date="'+iso+'" '+(disabled?'disabled':'')+'>'+
-          '<span class="date-dow">'+ plDayName(d) +'</span>'+
-          '<span>'+ plDateLabel(d) +'</span>'+
-        '</button>';
-    }).join('');
+  // z kluczy obiektu slots budujemy listę dostępnych dni
+  var keys = Object.keys(dataSlots || {});
+  var today = new Date(); today.setHours(0,0,0,0);
+
+  var days = keys.map(function(k){
+    var parts = k.split('-').map(Number); // [yyyy, mm, dd]
+    var dt = new Date(parts[0], parts[1]-1, parts[2]);
+    return { iso: k, date: dt, count: (dataSlots[k] || []).length };
+  }).filter(function(x){
+    return x.date >= today && x.count > 0; // tylko przyszłość i faktyczne sloty
+  }).sort(function(a,b){ return a.date - b.date; });
+
+  if (!days.length) {
+    datesEl.innerHTML = '<p class="muted">Brak nadchodzących terminów. Wróć później.</p>';
+    slotsEl.innerHTML = '';
+    selectedDate = null; selectedTime = null;
+    updateSummary();
+    return;
   }
 
-  function renderSlotsFor(dateISO){
-    var list = (dataSlots[dateISO] || []);
-    slotsEl.innerHTML = list.length
-      ? list.map(function(t){
-          return '<button class="slot-btn" data-time="'+t+'">'+t+'</button>';
-        }).join('')
-      : '<p class="muted">Brak terminów dla wybranego dnia.</p>';
-  }
+  datesEl.innerHTML = days.map(function(d){
+    return ''+
+      '<button class="date-btn" data-date="'+d.iso+'">'+
+        '<span class="date-dow">'+ plDayName(d.date) +'</span>'+
+        '<span>'+ plDateLabel(d.date) +'</span>'+
+        '<span class="meta">'+ d.count +' termin(y)</span>'+
+      '</button>';
+  }).join('');
+}
 
   function updateSummary(){
     if (selectedDate && selectedTime){
