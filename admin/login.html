@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Valivio – Logowanie</title>
+  <style>
+    body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial;margin:40px;display:grid;place-items:center}
+    .card{border:1px solid #ddd;border-radius:12px;padding:24px;max-width:420px;width:92vw}
+    .row{display:flex;flex-direction:column;gap:10px}
+    input,button{padding:10px;font-size:16px}
+    .msg{font-size:14px;color:#9b1c1c}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Panel Valivio</h1>
+    <p>Zaloguj się, aby zarządzać terminami.</p>
+    <div class="row">
+      <input id="email" type="email" placeholder="e-mail" autocomplete="username" />
+      <input id="pass" type="password" placeholder="hasło" autocomplete="current-password" />
+      <button id="btnLogin">Zaloguj</button>
+      <div id="authMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <script>
+    const API = (p,opt)=>fetch(p,Object.assign({credentials:'include'},opt||{}));
+    const $ = id => document.getElementById(id);
+
+    $('btnLogin').onclick = async ()=>{
+      $('authMsg').textContent = '';
+      const email = ($('email').value || '').trim();
+      const password = $('pass').value || '';
+      if(!email || !password){ $('authMsg').textContent='Podaj e-mail i hasło.'; return; }
+      const r = await API('/api/login',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ email, password })
+      });
+      if(r.ok){ location.href = '/admin'; }
+      else { $('authMsg').textContent = 'Błędne dane logowania.'; }
+    };
+  </script>
+</body>
+</html>
