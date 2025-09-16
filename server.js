@@ -37,8 +37,10 @@ function requireAuth(req, res, next) {
   catch { return res.status(401).json({ error: 'unauthorized' }); }
 }
 
-// === ADMIN GATE (/admin) ===
-// Jeśli masz ważne JWT -> serwuj panel, inaczej -> logowanie
+// — FRONT: public —
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: PROD ? '1h' : 0, extensions: ['html'] }));
+
+// — ADMIN GATE: najpierw bramka —
 app.get('/admin', (req, res) => {
   const token = req.cookies['valivio_token'];
   try {
@@ -48,6 +50,9 @@ app.get('/admin', (req, res) => {
     return res.sendFile(path.join(__dirname, 'admin', 'login.html'));
   }
 });
+
+// — ADMIN assets po bramce (gdybyś kiedyś dodał css/js) —
+app.use('/admin', express.static(path.join(__dirname, 'admin'), { maxAge: 0 }));
 
 // === AUTH API ===
 app.post('/api/login', async (req, res) => {
