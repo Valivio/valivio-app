@@ -1,4 +1,4 @@
-// === Footer year ===
+// === Rok w stopce ===
 const yearEl = document.getElementById('year');
 if (yearEl) yearEl.textContent = new Date().getFullYear();
 
@@ -20,23 +20,23 @@ if (yearEl) yearEl.textContent = new Date().getFullYear();
     }
 
     var subject = encodeURIComponent('Zgłoszenie konsultacji – Valivio');
-    var body = encodeURIComponent(
-      'Imię i nazwisko: ' + name + '\nE-mail: ' + email + '\n\nWiadomość:\n' + msg
-    );
+    var body = encodeURIComponent('Imię i nazwisko: ' + name + '\nE-mail: ' + email + '\n\nWiadomość:\n' + msg);
     window.location.href = 'mailto:contact@valivio.example?subject=' + subject + '&body=' + body;
 
     setTimeout(function () {
       form.reset();
-      if (status) {
-        status.textContent = 'Dziękuję! Jeśli e-mail się nie otworzył, napisz bezpośrednio na contact@valivio.example.';
-        status.style.color = '#111';
-      }
+      if (status) { status.textContent = 'Dziękuję! Jeśli e-mail się nie otworzył, napisz bezpośrednio na contact@valivio.example.'; status.style.color = '#111'; }
     }, 600);
   });
 })();
 
-// === Helpers ===
+// === Helpers ogólne ===
 function $(sel) { return document.querySelector(sel); }
+function pad2(n){ return n<10 ? '0'+n : ''+n; }
+function fmtISODate(d){ return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()); }
+function plDayName(date){ return date.toLocaleDateString('pl-PL', { weekday:'short' }).replace('.', ''); }
+function plDateLabel(date){ return date.toLocaleDateString('pl-PL', { day:'2-digit', month:'2-digit' }); }
+
 function fetchJSON(url) {
   var sep = url.indexOf('?') === -1 ? '?' : '&';
   return fetch(url + sep + 'v=' + Date.now(), { cache: 'no-store' })
@@ -49,16 +49,6 @@ function fetchHTML(url, mount, fallbackHTML) {
     .then(function(res){ if(!res.ok) throw new Error('HTTP ' + res.status); return res.text(); })
     .then(function(html){ mount.innerHTML = html; })
     .catch(function(){ if (fallbackHTML) mount.innerHTML = fallbackHTML; });
-}
-function pad2(n){ return n<10 ? '0'+n : ''+n; }
-function fmtISODate(d){
-  return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate());
-}
-function plDayName(date){
-  return date.toLocaleDateString('pl-PL', { weekday:'short' }).replace('.', '');
-}
-function plDateLabel(date){
-  return date.toLocaleDateString('pl-PL', { day:'2-digit', month:'2-digit' });
 }
 
 // === Renderery kart (HTML) ===
@@ -77,16 +67,14 @@ function cardProces(obj) {
     '</article>';
 }
 function cardOferta(obj) {
-  var items = (obj.bullets || []).slice(0, 3).map(function(li){
-    return '<li>' + li + '</li>';
-  }).join('');
+  var items = (obj.bullets || []).slice(0, 3).map(function(li){ return '<li>' + li + '</li>'; }).join('');
   return '' +
     '<article class="card">' +
       '<h3 class="h3 of-title">' + (obj.title || '') + '</h3>' +
       '<p class="meta of-desc">' + (obj.desc || '') + '</p>' +
       '<ul class="mt-12 of-list">' + items + '</ul>' +
       '<p class="price mt-16 of-price">' + (obj.price || '') + '</p>' +
-      '<a class="btn" href="rezerwacja.html">Umów sesję</a>' +   // <<< tu kierujemy do kalendarza
+      '<a class="btn" href="rezerwacja.html">Umów sesję</a>' +
     '</article>';
 }
 function itemFaq(obj) {
@@ -100,6 +88,10 @@ function itemFaq(obj) {
 function initDlaKogoCarousel(items) {
   var mount = document.querySelector('#dlaKogoCards');
   if (!mount || !Array.isArray(items) || !items.length) return;
+
+  // konfig szybkości (zmień MOBILE_AUTOSCROLL_MS na 3000 jeśli chcesz 3s)
+  var MOBILE_AUTOSCROLL_MS = 2000;
+  var DESKTOP_AUTOSCROLL_MS = 4000;
 
   mount.classList.remove('row', 'cols-3');
 
@@ -117,7 +109,7 @@ function initDlaKogoCarousel(items) {
     if (w <= 960) return 2;
     return 3;
   }
-  function getAutoDelay(){ return (VISIBLE === 1) ? 2000 : 4000; } // mobile 2s, reszta 4s
+  function getAutoDelay(){ return (VISIBLE === 1) ? MOBILE_AUTOSCROLL_MS : DESKTOP_AUTOSCROLL_MS; }
   function stepWidth() {
     var first = track && track.querySelector('.dk-card');
     if (!first) return 0;
@@ -202,7 +194,7 @@ function initDlaKogoCarousel(items) {
   build();
 }
 
-// === OFERTA: wyrównanie wysokości kart w siatce ===
+// === OFERTA: równe wysokości kart (siatka) ===
 function equalizeOfertaHeights() {
   var grid = document.querySelector('#ofertaCards');
   if (!grid) return;
@@ -257,24 +249,28 @@ var FALLBACK_DATA = {
   ]
 };
 
-// === Load JSON & render (home + FAQ + About content) ===
+// === Ładowanie treści (home + FAQ + About) ===
 function loadData() {
   fetchJSON('assets/data.json').then(function(data){
     if (!data) data = FALLBACK_DATA;
 
+    // Dla kogo — slider
     initDlaKogoCarousel(data && data.dlaKogo || []);
 
+    // Jak pracuję
     var procesMount = $('#procesCards');
     if (procesMount && Array.isArray(data.proces)) {
       procesMount.innerHTML = data.proces.map(cardProces).join('');
     }
 
+    // Oferta
     var ofertaMount = $('#ofertaCards');
     if (ofertaMount && Array.isArray(data.oferta)) {
       ofertaMount.innerHTML = data.oferta.map(cardOferta).join('');
       equalizeOfertaHeights();
     }
 
+    // FAQ z osobnego pliku
     var faqMount = document.querySelector('#faqList');
     if (faqMount) {
       fetchJSON('assets/faq.json').then(function(faq){
@@ -284,6 +280,7 @@ function loadData() {
     }
   });
 }
+
 function loadAboutContent() {
   var mount = document.getElementById('aboutContent');
   if (!mount) return;
@@ -294,7 +291,7 @@ function loadAboutContent() {
   );
 }
 
-// === Rezerwacja: kalendarz + placeholder płatności ===
+// === Rezerwacja: kalendarz z API + modal płatności (placeholder) ===
 function loadBooking(){
   var mount = document.getElementById('bookMount');
   if (!mount) return;
@@ -310,7 +307,7 @@ function loadBooking(){
 
   var selectedDate = null;
   var selectedTime = null;
-  var dataSlots = {};
+  var dataSlots = {}; // { "YYYY-MM-DD": ["HH:mm", ...], ... }
 
   function showModal(){
     if (!selectedDate || !selectedTime) return;
@@ -320,50 +317,49 @@ function loadBooking(){
   function hideModal(){
     modal.classList.remove('show'); backdrop.classList.remove('show');
   }
-
-  backdrop.addEventListener('click', hideModal);
-  payClose.addEventListener('click', hideModal);
+  if (backdrop) backdrop.addEventListener('click', hideModal);
+  if (payClose) payClose.addEventListener('click', hideModal);
   window.addEventListener('keydown', function(e){ if (e.key === 'Escape') hideModal(); });
 
+  // === KLUCZOWA ZMIANA: pokazujemy tylko faktycznie dostępne dni ===
   function renderDates(){
-  // Z kluczy obiektu slots budujemy listę faktycznie dostępnych dni.
-  var keys = Object.keys(dataSlots || {});
-  var today = new Date(); today.setHours(0,0,0,0);
+    var keys = Object.keys(dataSlots || {});
+    var today = new Date(); today.setHours(0,0,0,0);
 
-  var days = keys.map(function(k){
-    var parts = k.split('-').map(Number); // "YYYY-MM-DD" -> [y,m,d]
-    var dt = new Date(parts[0], parts[1]-1, parts[2]);
-    return { iso: k, date: dt, count: (dataSlots[k] || []).length };
-  }).filter(function(x){
-    return x.date >= today && x.count > 0; // tylko przyszłe dni z co najmniej 1 terminem
-  }).sort(function(a,b){ return a.date - b.date; });
+    var days = keys.map(function(k){
+      var parts = k.split('-').map(Number);
+      var dt = new Date(parts[0], parts[1]-1, parts[2]);
+      return { iso: k, date: dt, count: (dataSlots[k] || []).length };
+    }).filter(function(x){
+      return x.date >= today && x.count > 0;
+    }).sort(function(a,b){ return a.date - b.date; });
 
-  if (!days.length) {
-    datesEl.innerHTML = '<p class="muted">Brak nadchodzących terminów. Wróć później.</p>';
-    slotsEl.innerHTML = '';
-    selectedDate = null; selectedTime = null;
-    updateSummary();
-    return;
+    if (!days.length) {
+      datesEl.innerHTML = '<p class="muted">Brak nadchodzących terminów. Wróć później.</p>';
+      slotsEl.innerHTML = '';
+      selectedDate = null; selectedTime = null;
+      updateSummary();
+      return;
+    }
+
+    datesEl.innerHTML = days.map(function(d){
+      return ''+
+        '<button class="date-btn" data-date="'+d.iso+'">'+
+          '<span class="date-dow">'+ plDayName(d.date) +'</span>'+
+          '<span>'+ plDateLabel(d.date) +'</span>'+
+          '<span class="meta">'+ d.count +' termin(y)</span>'+
+        '</button>';
+    }).join('');
   }
 
-  datesEl.innerHTML = days.map(function(d){
-    return ''+
-      '<button class="date-btn" data-date="'+d.iso+'">'+
-        '<span class="date-dow">'+ plDayName(d.date) +'</span>'+
-        '<span>'+ plDateLabel(d.date) +'</span>'+
-        '<span class="meta">'+ d.count +' termin(y)</span>'+
-      '</button>';
-  }).join('');
-}
-  datesEl.innerHTML = days.map(function(d){
-    return ''+
-      '<button class="date-btn" data-date="'+d.iso+'">'+
-        '<span class="date-dow">'+ plDayName(d.date) +'</span>'+
-        '<span>'+ plDateLabel(d.date) +'</span>'+
-        '<span class="meta">'+ d.count +' termin(y)</span>'+
-      '</button>';
-  }).join('');
-}
+  function renderSlotsFor(dateISO){
+    var list = (dataSlots[dateISO] || []);
+    slotsEl.innerHTML = list.length
+      ? list.map(function(t){
+          return '<button class="slot-btn" data-time="'+t+'">'+t+'</button>';
+        }).join('')
+      : '<p class="muted">Brak terminów dla wybranego dnia.</p>';
+  }
 
   function updateSummary(){
     if (selectedDate && selectedTime){
@@ -395,38 +391,57 @@ function loadBooking(){
     updateSummary();
   });
 
-  payBtn.addEventListener('click', function(){
-    // tu później podepniemy prawdziwą płatność → teraz placeholder
-    showModal();
-  });
-
-  // load slots JSON
-  fetchJSON('assets/slots.json').then(function(json){
-    if (json && json.slots) dataSlots = json.slots;
-    renderDates();
-    // auto-wybór pierwszego dnia z dostępnym slotem
-    var firstWithSlot = null;
-    var btns = datesEl.querySelectorAll('.date-btn');
-    for (var i=0;i<btns.length;i++){
-      var d = btns[i].getAttribute('data-date');
-      if ((dataSlots[d] || []).length){
-        firstWithSlot = btns[i]; break;
+  // Klik „płatność” – na razie zapis rezerwacji + modal
+  if (payBtn) {
+    payBtn.addEventListener('click', async function(){
+      if (!selectedDate || !selectedTime) return;
+      try {
+        var res = await fetch('/api/book', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ date: selectedDate, time: selectedTime })
+        });
+        if (res.ok) {
+          showModal();
+        } else {
+          var body = {};
+          try { body = await res.json(); } catch(e){}
+          alert((body && (body.message || body.error)) || 'Ten termin jest już zajęty. Wybierz inny.');
+        }
+      } catch (e) {
+        alert('Błąd połączenia. Spróbuj ponownie.');
       }
-    }
-    if (firstWithSlot){
-      firstWithSlot.click();
-    }
-  });
+    });
+  }
+
+  // Pobierz sloty z backendu (zaczynamy od dzisiaj, zakres serwerowy ~21 dni)
+  fetch('/api/slots?from=' + fmtISODate(new Date()), { credentials:'include' })
+    .then(function(res){ return res.json(); })
+    .then(function(json){
+      dataSlots = (json && json.slots) ? json.slots : {};
+      renderDates();
+      // auto-wybierz pierwszy dzień z dostępnym slotem
+      var firstBtn = null;
+      var btns = datesEl.querySelectorAll('.date-btn');
+      for (var i=0;i<btns.length;i++){
+        var d = btns[i].getAttribute('data-date');
+        if ((dataSlots[d] || []).length){ firstBtn = btns[i]; break; }
+      }
+      if (firstBtn) firstBtn.click();
+    })
+    .catch(function(){
+      datesEl.innerHTML = '<p class="muted">Nie udało się wczytać dostępnych terminów.</p>';
+    });
 }
 
-// Start
+// === Start aplikacji ===
 document.addEventListener('DOMContentLoaded', function(){
   loadData();
   loadAboutContent();
   loadBooking();
 });
 
-// Równe wysokości kart Oferty przy resize
+// Równe wysokości kart Oferty przy resize/load
 window.addEventListener('resize', (function(){
   var rAF = null;
   return function(){
