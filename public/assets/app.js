@@ -211,25 +211,51 @@
   // ==================================
   // FAQ – treść z assets/faq.json
   // ==================================
-  (async function faqLoader() {
-    const mount = $('#faqList') || $('#faq .faq-list');
-    if (!mount) return;
-    const data = await fetchJSONFallback(['assets/faq.json', '/faq.json']);
-    const items = Array.isArray(data) ? data : (data && data.faq) || [];
-    if (!items.length) {
-      mount.innerHTML = '<p class="muted">FAQ w przygotowaniu.</p>';
-      return;
+
+(async function faqLoader() {
+  const mount = document.querySelector('#faqList') || document.querySelector('#faq .faq-list');
+  if (!mount) return;
+
+  async function fetchJSONFallback(paths) {
+    for (const p of paths) {
+      try {
+        const res = await fetch(p, { cache: 'no-store' });
+        if (!res.ok) continue;
+        const ct = (res.headers.get('content-type') || '').toLowerCase();
+        // nawet jeśli serwer nie zwróci JSON CT, spróbuj sparsować
+        const text = await res.text();
+        try { return JSON.parse(text); } catch { /* nie-JSON */ }
+      } catch { /* ignore */ }
     }
-    mount.innerHTML = items
-      .map(
-        (it) => `
-        <details>
-          <summary>${escapeHTML(it.q || '')}</summary>
-          <div class="mt-12">${escapeHTML(String(it.a || '')).replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br>')}</div>
-        </details>`
-      )
-      .join('');
-  })();
+    return null;
+  }
+
+  function esc(s) {
+    s = String(s);
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  const data = await fetchJSONFallback(['assets/faq.json', '/faq.json']);
+  const items = Array.isArray(data) ? data : (data && data.faq) || [];
+
+  if (!items.length) {
+    mount.innerHTML = '<p class="muted">FAQ w przygotowaniu.</p>';
+    return;
+  }
+
+  mount.innerHTML = items.map(it => {
+    const q = esc(it.q || '');
+    const a = esc(String(it.a || ''))
+                .replace(/\n{2,}/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+    return `
+      <details>
+        <summary>${q}</summary>
+        <div class="mt-12"><p>${a}</p></div>
+      </details>`;
+  }).join('');
+})();
 
   // ==================================
   // O MNIE – treść z assets/about.html/md
