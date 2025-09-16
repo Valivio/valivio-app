@@ -25,7 +25,7 @@
   <h2>Dodaj slot</h2>
   <div class="row">
     <input id="date" type="date">
-    <input id="time" type="time">
+    <select id="time" aria-label="Godzina (24h)"></select>
     <input id="dur" type="number" min="15" step="15" value="60">
     <button id="add">Dodaj</button>
   </div>
@@ -37,6 +37,22 @@
 <script>
 const API = (p,opt)=>fetch(p,Object.assign({credentials:'include'},opt||{}));
 const $ = id => document.getElementById(id);
+
+function buildTimeOptions(){
+  const sel = $('time');
+  if(!sel) return;
+  sel.innerHTML = '';
+  const start = 7*60;   // 07:00
+  const end   = 21*60;  // 21:00
+  const step  = 30;     // co 30 minut (zmień na 15 jeśli chcesz)
+  for(let m=start; m<=end; m+=step){
+    const h = Math.floor(m/60), min = m%60;
+    const label = String(h).padStart(2,'0') + ':' + String(min).padStart(2,'0');
+    const opt = document.createElement('option');
+    opt.value = label; opt.textContent = label;
+    sel.appendChild(opt);
+  }
+}
 
 $('btnLogin').onclick = async ()=>{
   const res = await API('/api/login',{
