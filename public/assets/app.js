@@ -326,16 +326,16 @@ function loadBooking(){
   window.addEventListener('keydown', function(e){ if (e.key === 'Escape') hideModal(); });
 
   function renderDates(){
-  // z kluczy obiektu slots budujemy listę dostępnych dni
+  // Z kluczy obiektu slots budujemy listę faktycznie dostępnych dni.
   var keys = Object.keys(dataSlots || {});
   var today = new Date(); today.setHours(0,0,0,0);
 
   var days = keys.map(function(k){
-    var parts = k.split('-').map(Number); // [yyyy, mm, dd]
+    var parts = k.split('-').map(Number); // "YYYY-MM-DD" -> [y,m,d]
     var dt = new Date(parts[0], parts[1]-1, parts[2]);
     return { iso: k, date: dt, count: (dataSlots[k] || []).length };
   }).filter(function(x){
-    return x.date >= today && x.count > 0; // tylko przyszłość i faktyczne sloty
+    return x.date >= today && x.count > 0; // tylko przyszłe dni z co najmniej 1 terminem
   }).sort(function(a,b){ return a.date - b.date; });
 
   if (!days.length) {
@@ -346,6 +346,15 @@ function loadBooking(){
     return;
   }
 
+  datesEl.innerHTML = days.map(function(d){
+    return ''+
+      '<button class="date-btn" data-date="'+d.iso+'">'+
+        '<span class="date-dow">'+ plDayName(d.date) +'</span>'+
+        '<span>'+ plDateLabel(d.date) +'</span>'+
+        '<span class="meta">'+ d.count +' termin(y)</span>'+
+      '</button>';
+  }).join('');
+}
   datesEl.innerHTML = days.map(function(d){
     return ''+
       '<button class="date-btn" data-date="'+d.iso+'">'+
