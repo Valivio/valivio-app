@@ -48,9 +48,27 @@ $('btnLogin').onclick = async ()=>{
 };
 
 $('add').onclick = async ()=>{
-  const date=$('date').value, time=$('time').value, duration=Number($('dur').value||60);
-  const r = await API('/api/slots',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date,time,duration})});
-  if(r.ok) loadSlots(); else alert('Nie udało się dodać (duplikat?)');
+  const date = $('date').value;
+  const time = $('time').value;
+  const duration = Number($('dur').value || 60);
+
+  const r = await API('/api/slots', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ date, time, duration })
+  });
+
+  if (r.ok) { loadSlots(); return; }
+
+  // pokaż dokładny błąd z API
+  let msg = 'Nie udało się dodać';
+  try {
+    const body = await r.json();
+    if (body && (body.message || body.error)) {
+      msg += ` — ${body.message || body.error}`;
+    }
+  } catch {}
+  alert(msg);
 };
 
 async function loadSlots(){
