@@ -143,11 +143,83 @@
     };
 
     // Ładowanie / usuwanie slotów
-    async function loadSlots(){
-      const res = await API('/api/admin/slots?v=' + Date.now(), {
-  headers: { 'Accept': 'application/json' },
-  cache: 'no-store'
-});
+    <script>
+/* ... pozostale skrypty zostają bez zmian ... */
+
+async function loadSlots(){
+  const tbody = document.querySelector('#tbl tbody');
+  try {
+    const res = await fetch('/api/admin/slots?v=' + Date.now(), {
+      credentials: 'include',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
+    });
+
+    if (!res.ok) {
+      const txt = await res.text().catch(()=> '');
+      tbody.innerHTML = `<tr><td colspan="4" class="danger">
+        Błąd pobierania (${res.status}). ${txt ? 'Szczegóły: '+txt.slice(0,200) : ''}
+      </td></tr>`;
+      return;
+    }
+
+    // upewnij się, że to JSON (a nie np. HTML przy 401)
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) {
+      const txt = await res.text().catch(()=> '');
+      tbody.innerHTML = `<tr><td colspan="4" class="danger">
+        Odpowiedź nie jest JSON (być może wygasła sesja). Odśwież stronę i zaloguj się ponownie.
+        ${txt ? '<br><pre style="white-space:pre-wrap">'+txt.slice(0,200)+'</pre>' : ''}
+      </td></tr>`;
+      return;
+    }
+
+    const rows = await res.json();
+
+    if (!Array.isArray(rows)) {
+      tbody.innerHTML = `<tr><td colspan="4" class="danger">
+        Nieoczekiwany format danych z API.
+      </td></tr>`;
+      return;
+    }
+
+    if (rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="muted">Brak slotów.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = rows.map(r=>{
+      const d = new Date(r.startAt);
+      const pl = new Intl.DateTimeFormat('pl-PL',{
+        timeZone:'Europe/Warsaw', dateStyle:'medium', timeStyle:'short'
+      }).format(d);
+      const parts = pl.split(', ');
+      const date = parts[0] || '';
+      const time = parts[1] || '';
+      return `<tr>
+        <td>${r.id}</td>
+        <td>${date}</td>
+        <td>${time}</td>
+        <td><button data-id="${r.id}" class="del">Usuń</button></td>
+      </tr>`;
+    }).join('');
+
+    tbody.onclick = async (e)=>{
+      const btn = e.target.closest('.del'); if(!btn) return;
+      if (!confirm('Usunąć ten termin?')) return;
+      const id = btn.getAttribute('data-id');
+      const r = await fetch('/api/slots/'+id, { method:'DELETE', credentials:'include' });
+      if (r.ok) loadSlots();
+      else alert('Nie udało się usunąć.');
+    };
+
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="4" class="danger">
+      Wyjątek przy pobieraniu slotów: ${String(err).slice(0,200)}
+    </td></tr>`;
+  }
+}
+</script>
       const tbody = $('#tbl').querySelector('tbody');
 
       if (!res.ok) {
