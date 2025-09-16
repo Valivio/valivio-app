@@ -304,60 +304,57 @@ function loadBooking(){
   var backdrop = document.getElementById('payBackdrop');
   var payInfo = document.getElementById('payInfo');
   var payClose = document.getElementById('payClose');
+  var monthSelect = document.getElementById('monthSelect');
 
   var selectedDate = null;
   var selectedTime = null;
   var dataSlots = {}; // { "YYYY-MM-DD": ["HH:mm", ...], ... }
 
+  // Helpers daty/miesiąca
+  function pad2(n){ return n<10 ? '0'+n : ''+n; }
+  function fmtISODate(d){ return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()); }
+  function plDayName(date){ return date.toLocaleDateString('pl-PL', { weekday:'short' }).replace('.', ''); }
+  function plDateLabel(date){ return date.toLocaleDateString('pl-PL', { day:'2-digit', month:'2-digit' }); }
+  function plMonthLabel(y,m){ return new Date(y,m-1,1).toLocaleDateString('pl-PL',{ month:'long', year:'numeric' }); }
+
+  // Modal
   function showModal(){
     if (!selectedDate || !selectedTime) return;
     payInfo.textContent = 'Termin: ' + selectedDate + ' godz. ' + selectedTime + '.';
     modal.classList.add('show'); backdrop.classList.add('show');
   }
-  function hideModal(){
-    modal.classList.remove('show'); backdrop.classList.remove('show');
-  }
+  function hideModal(){ modal.classList.remove('show'); backdrop.classList.remove('show'); }
   if (backdrop) backdrop.addEventListener('click', hideModal);
   if (payClose) payClose.addEventListener('click', hideModal);
   window.addEventListener('keydown', function(e){ if (e.key === 'Escape') hideModal(); });
 
-  // === KLUCZOWA ZMIANA: pokazujemy tylko faktycznie dostępne dni ===
- function renderDates(){
-  var keys = Object.keys(dataSlots || {});
-  var today = new Date(); today.setHours(0,0,0,0);
+  // Render dni na podstawie dataSlots (tylko przyszłość i tylko dni z terminami)
+  function renderDates(){
+    var keys = Object.keys(dataSlots || {});
+    var today = new Date(); today.setHours(0,0,0,0);
 
-  var days = keys.map(function(k){
-    var parts = k.split('-').map(Number);
-    var dt = new Date(parts[0], parts[1]-1, parts[2]);
-    return { iso: k, date: dt, count: (dataSlots[k] || []).length };
-  }).filter(function(x){
-    return x.date >= today && x.count > 0;
-  }).sort(function(a,b){ return a.date - b.date; });
+    var days = keys.map(function(k){
+      var parts = k.split('-').map(Number);
+      var dt = new Date(parts[0], parts[1]-1, parts[2]);
+      return { iso: k, date: dt, count: (dataSlots[k] || []).length };
+    }).filter(function(x){
+      return x.date >= today && x.count > 0;
+    }).sort(function(a,b){ return a.date - b.date; });
 
-  if (!days.length) {
-    datesEl.innerHTML = '<p class="muted">Brak nadchodzących terminów. Wróć później.</p>';
-    slotsEl.innerHTML = '';
-    selectedDate = null; selectedTime = null;
-    updateSummary();
-    return;
-  }
-
-  datesEl.innerHTML = days.map(function(d){
-    return ''+
-      '<button class="date-btn" data-date="'+d.iso+'">'+
-        '<span class="date-dow">'+ plDayName(d.date) +'</span>'+
-        '<span class="date-day">'+ plDateLabel(d.date) +'</span>'+
-        '<span class="date-meta">'+ d.count +'&nbsp;termin(y)</span>'+
-      '</button>';
-  }).join('');
-}
+    if (!days.length) {
+      datesEl.innerHTML = '<p class="muted">Brak terminów w wybranym miesiącu.</p>';
+      slotsEl.innerHTML = '';
+      selectedDate = null; selectedTime = null;
+      updateSummary();
+      return;
+    }
 
     datesEl.innerHTML = days.map(function(d){
       return ''+
         '<button class="date-btn" data-date="'+d.iso+'">'+
           '<span class="date-dow">'+ plDayName(d.date) +'</span>'+
-          '<span>'+ plDateLabel(d.date) +'</span>'+
-          '<span class="meta">'+ d.count +' termin(y)</span>'+
+          '<span class="date-day">'+ plDateLabel(d.date) +'</span>'+
+          '<span class="date-meta">'+ d.count +'&nbsp;termin(y)</span>'+
         '</button>';
     }).join('');
   }
@@ -365,9 +362,7 @@ function loadBooking(){
   function renderSlotsFor(dateISO){
     var list = (dataSlots[dateISO] || []);
     slotsEl.innerHTML = list.length
-      ? list.map(function(t){
-          return '<button class="slot-btn" data-time="'+t+'">'+t+'</button>';
-        }).join('')
+      ? list.map(function(t){ return '<button class="slot-btn" data-time="'+t+'">'+t+'</button>'; }).join('')
       : '<p class="muted">Brak terminów dla wybranego dnia.</p>';
   }
 
@@ -381,11 +376,10 @@ function loadBooking(){
     }
   }
 
+  // Zdarzenia na listach
   datesEl.addEventListener('click', function(e){
-    var btn = e.target.closest('.date-btn');
-    if (!btn || btn.disabled) return;
-    selectedDate = btn.getAttribute('data-date');
-    selectedTime = null;
+    var btn = e.target.closest('.date-btn'); if (!btn) return;
+    selectedDate = btn.getAttribute('data-date'); selectedTime = null;
     datesEl.querySelectorAll('.date-btn').forEach(function(b){ b.classList.remove('active'); });
     btn.classList.add('active');
     renderSlotsFor(selectedDate);
@@ -393,15 +387,13 @@ function loadBooking(){
   });
 
   slotsEl.addEventListener('click', function(e){
-    var btn = e.target.closest('.slot-btn');
-    if (!btn) return;
+    var btn = e.target.closest('.slot-btn'); if (!btn) return;
     selectedTime = btn.getAttribute('data-time');
     slotsEl.querySelectorAll('.slot-btn').forEach(function(b){ b.classList.remove('active'); });
     btn.classList.add('active');
     updateSummary();
   });
 
-  // Klik „płatność” – na razie zapis rezerwacji + modal
   if (payBtn) {
     payBtn.addEventListener('click', async function(){
       if (!selectedDate || !selectedTime) return;
@@ -411,37 +403,75 @@ function loadBooking(){
           headers:{'Content-Type':'application/json'},
           body: JSON.stringify({ date: selectedDate, time: selectedTime })
         });
-        if (res.ok) {
-          showModal();
-        } else {
-          var body = {};
-          try { body = await res.json(); } catch(e){}
+        if (res.ok) { showModal(); }
+        else {
+          var body = {}; try { body = await res.json(); } catch(e){}
           alert((body && (body.message || body.error)) || 'Ten termin jest już zajęty. Wybierz inny.');
         }
-      } catch (e) {
-        alert('Błąd połączenia. Spróbuj ponownie.');
-      }
+      } catch { alert('Błąd połączenia. Spróbuj ponownie.'); }
     });
   }
 
-  // Pobierz sloty z backendu (zaczynamy od dzisiaj, zakres serwerowy ~21 dni)
-  fetch('/api/slots?from=' + fmtISODate(new Date()), { credentials:'include' })
-    .then(function(res){ return res.json(); })
-    .then(function(json){
+  // === NOWE: filtr miesiąca ===
+  function populateMonths(){
+    if (!monthSelect) return;
+    var now = new Date();
+    var y = now.getFullYear(), m = now.getMonth()+1;
+    var opts = [];
+    for (var i=0; i<12; i++){
+      var mm = ((m + i - 1) % 12) + 1;
+      var yy = y + Math.floor((m + i - 1) / 12);
+      opts.push({ value: yy + '-' + pad2(mm), label: plMonthLabel(yy, mm) });
+    }
+    monthSelect.innerHTML = opts.map(function(o){
+      return '<option value="'+o.value+'">'+o.label+'</option>';
+    }).join('');
+    monthSelect.value = y + '-' + pad2(m);
+  }
+
+  async function fetchMonth(ym){
+    // ym = "YYYY-MM"
+    var parts = (ym || '').split('-').map(Number);
+    var yy = parts[0], mm = parts[1];
+    if (!yy || !mm) return;
+
+    var first = new Date(yy, mm-1, 1);
+    var last  = new Date(yy, mm, 0);
+
+    var url = '/api/slots?from=' + fmtISODate(first) + '&to=' + fmtISODate(last);
+    try {
+      var res = await fetch(url, { cache:'no-store' });
+      var json = await res.json();
       dataSlots = (json && json.slots) ? json.slots : {};
       renderDates();
-      // auto-wybierz pierwszy dzień z dostępnym slotem
-      var firstBtn = null;
-      var btns = datesEl.querySelectorAll('.date-btn');
-      for (var i=0;i<btns.length;i++){
-        var d = btns[i].getAttribute('data-date');
-        if ((dataSlots[d] || []).length){ firstBtn = btns[i]; break; }
-      }
-      if (firstBtn) firstBtn.click();
-    })
-    .catch(function(){
-      datesEl.innerHTML = '<p class="muted">Nie udało się wczytać dostępnych terminów.</p>';
+
+      // auto-wybór pierwszego dostępnego dnia
+      var firstBtn = datesEl.querySelector('.date-btn');
+      if (firstBtn) { firstBtn.click(); }
+    } catch {
+      datesEl.innerHTML = '<p class="muted">Nie udało się wczytać terminów.</p>';
+    }
+  }
+
+  if (monthSelect){
+    populateMonths();
+    monthSelect.addEventListener('change', function(){
+      selectedDate = null; selectedTime = null; updateSummary();
+      fetchMonth(monthSelect.value);
     });
+    // start: bieżący miesiąc
+    fetchMonth(monthSelect.value);
+  } else {
+    // awaryjnie: stary tryb (21 dni od dziś)
+    fetch('/api/slots?from=' + fmtISODate(new Date()), { cache:'no-store' })
+      .then(function(res){ return res.json(); })
+      .then(function(json){
+        dataSlots = (json && json.slots) ? json.slots : {};
+        renderDates();
+        var firstBtn = datesEl.querySelector('.date-btn'); if (firstBtn) firstBtn.click();
+      })
+      .catch(function(){ datesEl.innerHTML = '<p class="muted">Nie udało się wczytać terminów.</p>'; });
+  }
 }
 
 // === Start aplikacji ===
