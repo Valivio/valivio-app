@@ -1,492 +1,483 @@
-// === Rok w stopce ===
-const yearEl = document.getElementById('year');
-if (yearEl) yearEl.textContent = new Date().getFullYear();
+/* public/assets/app.js */
+(function () {
+  'use strict';
 
-// === Kontakt (mailto fallback) ===
-(function initContact() {
-  var form = document.getElementById('contactForm');
-  if (!form) return;
+  // ---------- Helpers ----------
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const pad2 = (n) => (n < 10 ? '0' + n : '' + n);
 
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    var name = (form.name && form.name.value || '').trim();
-    var email = (form.email && form.email.value || '').trim();
-    var msg = (form.message && form.message.value || '').trim();
-    var status = document.getElementById('formStatus');
+  // ---------- Rok w stopce ----------
+  (function setYear() {
+    const el = $('#year');
+    if (el) el.textContent = new Date().getFullYear();
+  })();
 
-    if (!name || !email || !msg) {
-      if (status) { status.textContent = 'Uzupełnij wszystkie pola.'; status.style.color = '#b91c1c'; }
-      return;
+  // ---------- Formularz kontaktowy (mailto fallback) ----------
+  (function contactForm() {
+    const form = $('#contactForm');
+    if (!form) return;
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = form.name.value.trim();
+      const email = form.email.value.trim();
+      const msg = form.message.value.trim();
+      const status = $('#formStatus');
+
+      if (!name || !email || !msg) {
+        if (status) {
+          status.textContent = 'Uzupełnij wszystkie pola.';
+          status.style.color = '#b91c1c';
+        }
+        return;
+      }
+
+      const subject = encodeURIComponent('Zgłoszenie konsultacji – Valivio');
+      const body = encodeURIComponent(
+        `Imię i nazwisko: ${name}\nE-mail: ${email}\n\nWiadomość:\n${msg}`
+      );
+
+      window.location.href = `mailto:contact@valivio.example?subject=${subject}&body=${body}`;
+
+      setTimeout(() => {
+        form.reset();
+        if (status) {
+          status.textContent =
+            'Dziękuję! Jeśli e-mail się nie otworzył, napisz bezpośrednio na contact@valivio.example.';
+          status.style.color = '#111';
+        }
+      }, 600);
+    });
+  })();
+
+  // ============================================================
+  // DLA KOGO – Slider poziomy: 3/2/1 widocznych, auto-scroll o 1
+  // ============================================================
+  (function dlaKogoSlider() {
+    const root = $('#dlaKogoCards');
+    if (!root) return;
+
+    const viewport = root.querySelector('.dk-viewport');
+    const track = root.querySelector('.dk-track');
+
+    // Konfiguracja prędkości (ms)
+    const DK_CYCLE_MS_DESKTOP = 5000;
+    const DK_CYCLE_MS_TABLET = 4000;
+    const DK_CYCLE_MS_MOBILE = 2000; // <- zmień tu, jeśli chcesz np. 3000 na telefonie
+
+    let items = [];
+    let timer = null;
+
+    function visibleCount() {
+      const w = window.innerWidth;
+      if (w <= 680) return 1;
+      if (w <= 960) return 2;
+      return 3;
     }
 
-    var subject = encodeURIComponent('Zgłoszenie konsultacji – Valivio');
-    var body = encodeURIComponent('Imię i nazwisko: ' + name + '\nE-mail: ' + email + '\n\nWiadomość:\n' + msg);
-    window.location.href = 'mailto:contact@valivio.example?subject=' + subject + '&body=' + body;
-
-    setTimeout(function () {
-      form.reset();
-      if (status) { status.textContent = 'Dziękuję! Jeśli e-mail się nie otworzył, napisz bezpośrednio na contact@valivio.example.'; status.style.color = '#111'; }
-    }, 600);
-  });
-})();
-
-// === Helpers ogólne ===
-function $(sel) { return document.querySelector(sel); }
-function pad2(n){ return n<10 ? '0'+n : ''+n; }
-function fmtISODate(d){ return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()); }
-function plDayName(date){ return date.toLocaleDateString('pl-PL', { weekday:'short' }).replace('.', ''); }
-function plDateLabel(date){ return date.toLocaleDateString('pl-PL', { day:'2-digit', month:'2-digit' }); }
-
-function fetchJSON(url) {
-  var sep = url.indexOf('?') === -1 ? '?' : '&';
-  return fetch(url + sep + 'v=' + Date.now(), { cache: 'no-store' })
-    .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status + ' for ' + url); return res.text(); })
-    .then(function (txt) { try { return JSON.parse(txt); } catch (e) { console.error('[JSON parse error]', url); return null; } })
-    .catch(function () { return null; });
-}
-function fetchHTML(url, mount, fallbackHTML) {
-  fetch(url + (url.includes('?') ? '&' : '?') + 'v=' + Date.now(), { cache: 'no-store' })
-    .then(function(res){ if(!res.ok) throw new Error('HTTP ' + res.status); return res.text(); })
-    .then(function(html){ mount.innerHTML = html; })
-    .catch(function(){ if (fallbackHTML) mount.innerHTML = fallbackHTML; });
-}
-
-// === Renderery kart (HTML) ===
-function cardDlaKogo(obj) {
-  return '' +
-    '<article class="card">' +
-      '<h3 class="h3">' + (obj.title || '') + '</h3>' +
-      '<p class="meta">' + (obj.text || '') + '</p>' +
-    '</article>';
-}
-function cardProces(obj) {
-  return '' +
-    '<article class="card">' +
-      '<h3 class="h3">' + (obj.title || '') + '</h3>' +
-      '<p class="meta">' + (obj.text || '') + '</p>' +
-    '</article>';
-}
-function cardOferta(obj) {
-  var items = (obj.bullets || []).slice(0, 3).map(function(li){ return '<li>' + li + '</li>'; }).join('');
-  return '' +
-    '<article class="card">' +
-      '<h3 class="h3 of-title">' + (obj.title || '') + '</h3>' +
-      '<p class="meta of-desc">' + (obj.desc || '') + '</p>' +
-      '<ul class="mt-12 of-list">' + items + '</ul>' +
-      '<p class="price mt-16 of-price">' + (obj.price || '') + '</p>' +
-      '<a class="btn" href="rezerwacja.html">Umów sesję</a>' +
-    '</article>';
-}
-function itemFaq(obj) {
-  var q = (obj && obj.q) ? obj.q : '';
-  var a = (obj && obj.a) ? obj.a : '';
-  var aHtml = String(a).replace(/\n/g, '<br>');
-  return '<details><summary>' + q + '</summary><p>' + aHtml + '</p></details>';
-}
-
-// === Karuzela „Dla kogo” — autoscroll w lewo (3/2/1 widocznych) ===
-function initDlaKogoCarousel(items) {
-  var mount = document.querySelector('#dlaKogoCards');
-  if (!mount || !Array.isArray(items) || !items.length) return;
-
-  // konfig szybkości (zmień MOBILE_AUTOSCROLL_MS na 3000 jeśli chcesz 3s)
-  var MOBILE_AUTOSCROLL_MS = 2000;
-  var DESKTOP_AUTOSCROLL_MS = 4000;
-
-  mount.classList.remove('row', 'cols-3');
-
-  var prefersReduced = false;
-  try { prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
-
-  var GAP = 24;
-  var VISIBLE = getVisible();
-  var current = 0;
-  var viewport, track, timer = null;
-
-  function getVisible() {
-    var w = window.innerWidth || 1200;
-    if (w <= 680) return 1;
-    if (w <= 960) return 2;
-    return 3;
-  }
-  function getAutoDelay(){ return (VISIBLE === 1) ? MOBILE_AUTOSCROLL_MS : DESKTOP_AUTOSCROLL_MS; }
-  function stepWidth() {
-    var first = track && track.querySelector('.dk-card');
-    if (!first) return 0;
-    var w = first.getBoundingClientRect().width;
-    return w + GAP;
-  }
-  function equalizeHeights() {
-    var cards = track.querySelectorAll('.dk-card .card');
-    var maxH = 0;
-    for (var i=0; i<cards.length; i++){
-      cards[i].style.height = 'auto';
-      var h = cards[i].offsetHeight;
-      if (h > maxH) maxH = h;
+    function cycleDelay() {
+      const w = window.innerWidth;
+      if (w <= 680) return DK_CYCLE_MS_MOBILE;
+      if (w <= 960) return DK_CYCLE_MS_TABLET;
+      return DK_CYCLE_MS_DESKTOP;
     }
-    if (maxH > 0) {
-      viewport.style.height = maxH + 'px';
-      for (var j=0; j<cards.length; j++){
-        cards[j].style.height = '100%';
+
+    function render(list) {
+      // list: [{title, text}, ...]
+      track.innerHTML = list
+        .map(
+          (it) => `
+            <div class="dk-card">
+              <div class="card">
+                <h3 class="h3">${escapeHTML(it.title || '')}</h3>
+                <p class="meta">${escapeHTML(it.text || '')}</p>
+              </div>
+            </div>`
+        )
+        .join('');
+      items = $$('.dk-card', track);
+      // wyrównanie wejścia (klasa animacyjna z CSS – opcjonalnie)
+      root.classList.add('dk-fade');
+      requestAnimationFrame(() => root.classList.remove('dk-fade'));
+    }
+
+    function stepScroll() {
+      if (!viewport || !items.length) return;
+      const firstCard = items[0].getBoundingClientRect();
+      const gap = getGapPx();
+      const step = Math.round(firstCard.width + gap);
+      const maxScroll = track.scrollWidth - viewport.clientWidth;
+      const next = Math.min(viewport.scrollLeft + step, maxScroll);
+
+      if (viewport.scrollLeft >= maxScroll - 2) {
+        // restart do początku
+        viewport.scrollTo({ left: 0, behavior: 'instant' });
+      } else {
+        viewport.scrollTo({ left: next, behavior: 'smooth' });
       }
     }
-  }
-  function build() {
-    VISIBLE = getVisible();
-    mount.innerHTML = '<div class="dk-viewport"><div class="dk-track" style="--dk-visible:'+ VISIBLE +'"></div></div>';
-    viewport = mount.querySelector('.dk-viewport');
-    track = mount.querySelector('.dk-track');
 
-    var before = items.slice(-VISIBLE);
-    var after  = items.slice(0, VISIBLE);
-    var full = before.concat(items, after);
-
-    track.innerHTML = full.map(cardDlaKogo).map(function(html){
-      return '<div class="dk-card">' + html + '</div>';
-    }).join('');
-
-    current = 0;
-    jumpTo(current);
-    equalizeHeights();
-    startAuto();
-  }
-  function jumpTo(realIndex) {
-    var offsetCards = realIndex + VISIBLE;
-    var dist = -offsetCards * stepWidth();
-    track.style.transition = 'none';
-    track.style.transform = 'translateX('+ dist +'px)';
-    void track.offsetHeight;
-    track.style.transition = 'transform .5s ease';
-  }
-  function moveLeftByOne() {
-    current += 1;
-    var offsetCards = current + VISIBLE;
-    var dist = -offsetCards * stepWidth();
-    track.style.transform = 'translateX('+ dist +'px)';
-    if (current >= items.length) {
-      track.addEventListener('transitionend', function handle() {
-        track.removeEventListener('transitionend', handle);
-        current = 0;
-        jumpTo(current);
-      }, { once: true });
+    function getGapPx() {
+      const cs = getComputedStyle(track);
+      const gap = cs.gap || '24px';
+      const m = gap.match(/([\d.]+)px/);
+      return m ? parseFloat(m[1]) : 24;
     }
-  }
-  function startAuto() {
-    stopAuto();
-    if (items.length <= VISIBLE || prefersReduced) return;
-    timer = setInterval(moveLeftByOne, getAutoDelay());
-  }
-  function stopAuto() { if (timer) { clearInterval(timer); timer = null; } }
 
-  mount.addEventListener('mouseenter', stopAuto);
-  mount.addEventListener('mouseleave', startAuto);
-  mount.addEventListener('touchstart', function(){ stopAuto(); setTimeout(startAuto, 6000); }, { passive:true });
+    function startTimer() {
+      stopTimer();
+      timer = setInterval(stepScroll, cycleDelay());
+    }
+    function stopTimer() {
+      if (timer) clearInterval(timer);
+      timer = null;
+    }
 
-  var rAF = null;
-  window.addEventListener('resize', function(){
-    if (rAF) cancelAnimationFrame(rAF);
-    rAF = requestAnimationFrame(function(){
-      var v = getVisible();
-      if (v !== VISIBLE) build(); else { jumpTo(current); equalizeHeights(); stopAuto(); startAuto(); }
+    // Pauza na hover (desktop)
+    viewport.addEventListener('mouseenter', stopTimer);
+    viewport.addEventListener('mouseleave', startTimer);
+    window.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopTimer();
+      else startTimer();
     });
-  });
+    window.addEventListener('resize', () => {
+      // po resize zresetuj timer (inne czasy) i dociśnij do „siatki”
+      startTimer();
+    });
 
-  build();
-}
+    // Wczytaj treść z assets/data.json
+    fetch('assets/data.json', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((json) => {
+        const list = (json && json.dlaKogo) || []; // [{title,text}, ...]
+        render(list);
+        startTimer();
+      })
+      .catch(() => {
+        // awaryjnie: jeśli brak pliku, nie psuj strony
+      });
 
-// === OFERTA: równe wysokości kart (siatka) ===
-function equalizeOfertaHeights() {
-  var grid = document.querySelector('#ofertaCards');
-  if (!grid) return;
-  var cards = grid.querySelectorAll('.card');
-  if (!cards.length) return;
-  for (var i = 0; i < cards.length; i++) { cards[i].style.height = 'auto'; }
-  var maxH = 0;
-  for (var j = 0; j < cards.length; j++) {
-    var h = cards[j].offsetHeight;
-    if (h > maxH) maxH = h;
-  }
-  if (maxH > 0) {
-    for (var k = 0; k < cards.length; k++) { cards[k].style.height = maxH + 'px'; }
-  }
-}
-
-// === Fallback dla data.json (awaryjnie) ===
-var FALLBACK_DATA = {
-  "dlaKogo": [
-    { "title": "„Zarabiam, a brak spokoju.”", "text": "Masz dochody, ale brak bufora, nieregularne wydatki i stres przy każdej zmianie rat lub pracy." },
-    { "title": "„Chcę zmiany w pracy.”", "text": "Wypalenie, stagnacja, chęć zmiany kierunku bez ryzykowania wszystkiego naraz." },
-    { "title": "„Po rozstaniu wszystko się posypało.”", "text": "Wsparcie emocjonalno-finansowe po życiowych zmianach (rozstanie, przeprowadzka, start JDG)." },
-    { "title": "„Chaos w wydatkach.”", "text": "Trudno przewidzieć miesiąc do przodu — chcesz prosty system i spokój." },
-    { "title": "„Negocjacje wynagrodzenia.”", "text": "Przygotowanie do rozmowy: argumenty, widełki, scenariusze i granice." },
-    { "title": "„Startuję z JDG.”", "text": "Budżet startowy, poduszka, stawki i plan na pierwsze 90 dni." }
-  ],
-  "proces": [
-    { "title": "1. Diagnoza", "text": "Sytuacja, zasoby, przeszkody. Krótko i na temat." },
-    { "title": "2. Plan 30–60–90", "text": "Kroki, terminy, progi decyzyjne. Jedna kartka, zero chaosu." },
-    { "title": "3. Wdrożenie", "text": "Nawyki, narzędzia, rozmowy (np. z pracodawcą/bankiem)." },
-    { "title": "4. Monitorowanie", "text": "Krótki follow-up i korekty, by efekt został z Tobą." }
-  ],
-  "oferta": [
-    {
-      "title": "Konsultacja 60 minut",
-      "desc": "Szybka diagnoza finansowo-zawodowa, priorytety i pierwsze kroki.",
-      "bullets": ["Brief potrzeb i celów", "3 kluczowe decyzje do podjęcia", "Mini-plan na 2 tygodnie"],
-      "price": "249 zł"
-    },
-    {
-      "title": "Pakiet „Reset finansowy” – 3 sesje",
-      "desc": "Porządkujemy budżet, decyzje i nawyki. Spokój i przewidywalność.",
-      "bullets": ["Plan 30–60–90 dni", "Szablony i arkusze (budżet, bufor, długi)", "E-mail follow-up po każdej sesji"],
-      "price": "699 zł"
-    },
-    {
-      "title": "Pakiet „Kierunek praca” – 5 sesji",
-      "desc": "Zmiana/negocjacje/dalsza ścieżka. Decyzje w zgodzie z wartościami i finansami.",
-      "bullets": ["Strategia zmiany lub rozwoju", "Trening rozmów + plan finansowy", "Materiały i checklisty"],
-      "price": "1 099 zł"
+    function escapeHTML(s) {
+      return String(s)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
     }
-  ]
-};
+  })();
 
-// === Ładowanie treści (home + FAQ + About) ===
-function loadData() {
-  fetchJSON('assets/data.json').then(function(data){
-    if (!data) data = FALLBACK_DATA;
+  // ==================================
+  // FAQ – treść z assets/faq.json
+  // ==================================
+  (function faqLoader() {
+    const mount =
+      $('#faqList') || // np. <div id="faqList"></div>
+      $('#faq .faq-list') || // fallback
+      null;
+    if (!mount) return;
 
-    // Dla kogo — slider
-    initDlaKogoCarousel(data && data.dlaKogo || []);
+    fetch('assets/faq.json', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((data) => {
+        const items = Array.isArray(data) ? data : data?.faq || [];
+        if (!items.length) {
+          mount.innerHTML = '<p class="muted">FAQ w przygotowaniu.</p>';
+          return;
+        }
+        mount.innerHTML = items
+          .map(
+            (it) => `
+            <details>
+              <summary>${escapeHTML(it.q || '')}</summary>
+              <div class="mt-12">${nl2p(it.a || '')}</div>
+            </details>`
+          )
+          .join('');
+      })
+      .catch(() => {
+        mount.innerHTML = '<p class="muted">Nie udało się wczytać FAQ.</p>';
+      });
 
-    // Jak pracuję
-    var procesMount = $('#procesCards');
-    if (procesMount && Array.isArray(data.proces)) {
-      procesMount.innerHTML = data.proces.map(cardProces).join('');
+    function escapeHTML(s) {
+      return String(s)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
     }
-
-    // Oferta
-    var ofertaMount = $('#ofertaCards');
-    if (ofertaMount && Array.isArray(data.oferta)) {
-      ofertaMount.innerHTML = data.oferta.map(cardOferta).join('');
-      equalizeOfertaHeights();
+    function nl2p(txt) {
+      const safe = escapeHTML(txt).replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br>');
+      return `<p>${safe}</p>`;
     }
+  })();
 
-    // FAQ z osobnego pliku
-    var faqMount = document.querySelector('#faqList');
-    if (faqMount) {
-      fetchJSON('assets/faq.json').then(function(faq){
-        var items = (faq && Array.isArray(faq.items)) ? faq.items : [];
-        faqMount.innerHTML = items.map(itemFaq).join('');
+  // ==================================
+  // O MNIE – treść z assets/about.html/md
+  // ==================================
+  (function aboutLoader() {
+    const mount = $('#aboutMount'); // np. <main id="aboutMount"></main>
+    if (!mount) return;
+
+    // Spróbuj HTML, potem Markdown (prosty konwerter)
+    fetch('assets/about.html', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.text() : Promise.reject()))
+      .then((html) => {
+        mount.innerHTML = html;
+      })
+      .catch(() => {
+        // Markdown fallback
+        fetch('assets/about.md', { cache: 'no-store' })
+          .then((r) => (r.ok ? r.text() : Promise.reject()))
+          .then((md) => {
+            mount.innerHTML = mdToHTML(md);
+          })
+          .catch(() => {
+            mount.innerHTML = '<p class="muted">Sekcja „O mnie” w przygotowaniu.</p>';
+          });
+      });
+
+    function mdToHTML(md) {
+      // bardzo prosty markdown->html (nagłówki #, akapity, bold/italic, listy)
+      const esc = (s) =>
+        s
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;');
+      let html = esc(md);
+      html = html.replace(/^### (.*)$/gm, '<h3>$1</h3>');
+      html = html.replace(/^## (.*)$/gm, '<h2>$1</h2>');
+      html = html.replace(/^# (.*)$/gm, '<h1>$1</h1>');
+      html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      // listy
+      html = html.replace(/^\s*[-*] (.*)$/gm, '<li>$1</li>');
+      html = html.replace(/(<li>.*<\/li>)(\s*(<li>.*<\/li>))+?/gs, (m) => `<ul>${m}</ul>`);
+      // akapity
+      html = html.replace(/(?:\r?\n){2,}/g, '</p><p>');
+      html = `<p>${html}</p>`;
+      return html;
+    }
+  })();
+
+  // ============================================================
+  // REZERWACJA – filtr wg miesiąca + wybór dnia/godziny + modal
+  // ============================================================
+  (function loadBooking() {
+    const mount = $('#bookMount');
+    if (!mount) return;
+
+    const datesEl = $('#dates');
+    const slotsEl = $('#slots');
+    const summaryEl = $('#summaryText');
+    const payBtn = $('#payBtn');
+    const modal = $('#payModal');
+    const backdrop = $('#payBackdrop');
+    const payInfo = $('#payInfo');
+    const payClose = $('#payClose');
+    const monthSelect = $('#monthSelect');
+
+    let selectedDate = null;
+    let selectedTime = null;
+    let dataSlots = {}; // { "YYYY-MM-DD": ["HH:mm", ...] }
+
+    function fmtISODate(d) {
+      return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+    }
+    function plDayName(date) {
+      return date.toLocaleDateString('pl-PL', { weekday: 'short' }).replace('.', '');
+    }
+    function plDateLabel(date) {
+      return date.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' });
+    }
+    function plMonthLabel(y, m) {
+      return new Date(y, m - 1, 1).toLocaleDateString('pl-PL', {
+        month: 'long',
+        year: 'numeric',
       });
     }
-  });
-}
 
-function loadAboutContent() {
-  var mount = document.getElementById('aboutContent');
-  if (!mount) return;
-  fetchHTML(
-    'assets/about-content.html',
-    mount,
-    '<div class="container"><div class="card"><p class="muted">Nie udało się wczytać treści. Odśwież stronę.</p></div></div>'
-  );
-}
+    function showModal() {
+      if (!selectedDate || !selectedTime) return;
+      if (payInfo) payInfo.textContent = 'Termin: ' + selectedDate + ' godz. ' + selectedTime + '.';
+      modal?.classList.add('show');
+      backdrop?.classList.add('show');
+    }
+    function hideModal() {
+      modal?.classList.remove('show');
+      backdrop?.classList.remove('show');
+    }
+    backdrop?.addEventListener('click', hideModal);
+    payClose?.addEventListener('click', hideModal);
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') hideModal();
+    });
 
-// === Rezerwacja: kalendarz z API + modal płatności (placeholder) ===
-function loadBooking(){
-  var mount = document.getElementById('bookMount');
-  if (!mount) return;
+    function renderDates() {
+      const keys = Object.keys(dataSlots || {});
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-  var datesEl = document.getElementById('dates');
-  var slotsEl = document.getElementById('slots');
-  var summaryEl = document.getElementById('summaryText');
-  var payBtn = document.getElementById('payBtn');
-  var modal = document.getElementById('payModal');
-  var backdrop = document.getElementById('payBackdrop');
-  var payInfo = document.getElementById('payInfo');
-  var payClose = document.getElementById('payClose');
-  var monthSelect = document.getElementById('monthSelect');
+      const days = keys
+        .map((k) => {
+          const parts = k.split('-').map(Number);
+          const dt = new Date(parts[0], parts[1] - 1, parts[2]);
+          return { iso: k, date: dt, count: (dataSlots[k] || []).length };
+        })
+        .filter((x) => x.date >= today && x.count > 0)
+        .sort((a, b) => a.date - b.date);
 
-  var selectedDate = null;
-  var selectedTime = null;
-  var dataSlots = {}; // { "YYYY-MM-DD": ["HH:mm", ...], ... }
+      if (!days.length) {
+        datesEl.innerHTML =
+          '<p class="muted">Brak terminów w wybranym miesiącu.</p>';
+        slotsEl.innerHTML = '';
+        selectedDate = null;
+        selectedTime = null;
+        updateSummary();
+        return;
+      }
 
-  // Helpers daty/miesiąca
-  function pad2(n){ return n<10 ? '0'+n : ''+n; }
-  function fmtISODate(d){ return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()); }
-  function plDayName(date){ return date.toLocaleDateString('pl-PL', { weekday:'short' }).replace('.', ''); }
-  function plDateLabel(date){ return date.toLocaleDateString('pl-PL', { day:'2-digit', month:'2-digit' }); }
-  function plMonthLabel(y,m){ return new Date(y,m-1,1).toLocaleDateString('pl-PL',{ month:'long', year:'numeric' }); }
+      datesEl.innerHTML = days
+        .map(
+          (d) =>
+            `<button class="date-btn" data-date="${d.iso}">
+              <span class="date-dow">${plDayName(d.date)}</span>
+              <span class="date-day">${plDateLabel(d.date)}</span>
+              <span class="date-meta">${d.count}&nbsp;termin(y)</span>
+            </button>`
+        )
+        .join('');
+    }
 
-  // Modal
-  function showModal(){
-    if (!selectedDate || !selectedTime) return;
-    payInfo.textContent = 'Termin: ' + selectedDate + ' godz. ' + selectedTime + '.';
-    modal.classList.add('show'); backdrop.classList.add('show');
-  }
-  function hideModal(){ modal.classList.remove('show'); backdrop.classList.remove('show'); }
-  if (backdrop) backdrop.addEventListener('click', hideModal);
-  if (payClose) payClose.addEventListener('click', hideModal);
-  window.addEventListener('keydown', function(e){ if (e.key === 'Escape') hideModal(); });
+    function renderSlotsFor(dateISO) {
+      const list = dataSlots[dateISO] || [];
+      slotsEl.innerHTML = list.length
+        ? list.map((t) => `<button class="slot-btn" data-time="${t}">${t}</button>`).join('')
+        : '<p class="muted">Brak terminów dla wybranego dnia.</p>';
+    }
 
-  // Render dni na podstawie dataSlots (tylko przyszłość i tylko dni z terminami)
-  function renderDates(){
-    var keys = Object.keys(dataSlots || {});
-    var today = new Date(); today.setHours(0,0,0,0);
+    function updateSummary() {
+      if (selectedDate && selectedTime) {
+        summaryEl.textContent = 'Wybrano: ' + selectedDate + ' — ' + selectedTime;
+        payBtn.disabled = false;
+      } else {
+        summaryEl.textContent = 'Nie wybrano terminu.';
+        payBtn.disabled = true;
+      }
+    }
 
-    var days = keys.map(function(k){
-      var parts = k.split('-').map(Number);
-      var dt = new Date(parts[0], parts[1]-1, parts[2]);
-      return { iso: k, date: dt, count: (dataSlots[k] || []).length };
-    }).filter(function(x){
-      return x.date >= today && x.count > 0;
-    }).sort(function(a,b){ return a.date - b.date; });
-
-    if (!days.length) {
-      datesEl.innerHTML = '<p class="muted">Brak terminów w wybranym miesiącu.</p>';
-      slotsEl.innerHTML = '';
-      selectedDate = null; selectedTime = null;
+    datesEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('.date-btn');
+      if (!btn) return;
+      selectedDate = btn.getAttribute('data-date');
+      selectedTime = null;
+      $$('.date-btn', datesEl).forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderSlotsFor(selectedDate);
       updateSummary();
-      return;
-    }
+    });
 
-    datesEl.innerHTML = days.map(function(d){
-      return ''+
-        '<button class="date-btn" data-date="'+d.iso+'">'+
-          '<span class="date-dow">'+ plDayName(d.date) +'</span>'+
-          '<span class="date-day">'+ plDateLabel(d.date) +'</span>'+
-          '<span class="date-meta">'+ d.count +'&nbsp;termin(y)</span>'+
-        '</button>';
-    }).join('');
-  }
+    slotsEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('.slot-btn');
+      if (!btn) return;
+      selectedTime = btn.getAttribute('data-time');
+      $$('.slot-btn', slotsEl).forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      updateSummary();
+    });
 
-  function renderSlotsFor(dateISO){
-    var list = (dataSlots[dateISO] || []);
-    slotsEl.innerHTML = list.length
-      ? list.map(function(t){ return '<button class="slot-btn" data-time="'+t+'">'+t+'</button>'; }).join('')
-      : '<p class="muted">Brak terminów dla wybranego dnia.</p>';
-  }
-
-  function updateSummary(){
-    if (selectedDate && selectedTime){
-      summaryEl.textContent = 'Wybrano: ' + selectedDate + ' — ' + selectedTime;
-      payBtn.disabled = false;
-    } else {
-      summaryEl.textContent = 'Nie wybrano terminu.';
-      payBtn.disabled = true;
-    }
-  }
-
-  // Zdarzenia na listach
-  datesEl.addEventListener('click', function(e){
-    var btn = e.target.closest('.date-btn'); if (!btn) return;
-    selectedDate = btn.getAttribute('data-date'); selectedTime = null;
-    datesEl.querySelectorAll('.date-btn').forEach(function(b){ b.classList.remove('active'); });
-    btn.classList.add('active');
-    renderSlotsFor(selectedDate);
-    updateSummary();
-  });
-
-  slotsEl.addEventListener('click', function(e){
-    var btn = e.target.closest('.slot-btn'); if (!btn) return;
-    selectedTime = btn.getAttribute('data-time');
-    slotsEl.querySelectorAll('.slot-btn').forEach(function(b){ b.classList.remove('active'); });
-    btn.classList.add('active');
-    updateSummary();
-  });
-
-  if (payBtn) {
-    payBtn.addEventListener('click', async function(){
+    payBtn?.addEventListener('click', async () => {
       if (!selectedDate || !selectedTime) return;
       try {
-        var res = await fetch('/api/book', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ date: selectedDate, time: selectedTime })
+        const res = await fetch('/api/book', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: selectedDate, time: selectedTime }),
         });
-        if (res.ok) { showModal(); }
-        else {
-          var body = {}; try { body = await res.json(); } catch(e){}
-          alert((body && (body.message || body.error)) || 'Ten termin jest już zajęty. Wybierz inny.');
+        if (res.ok) {
+          showModal();
+        } else {
+          let body = {};
+          try {
+            body = await res.json();
+          } catch {}
+          alert(
+            (body && (body.message || body.error)) ||
+              'Ten termin jest już zajęty. Wybierz inny.'
+          );
         }
-      } catch { alert('Błąd połączenia. Spróbuj ponownie.'); }
+      } catch {
+        alert('Błąd połączenia. Spróbuj ponownie.');
+      }
     });
-  }
 
-  // === NOWE: filtr miesiąca ===
-  function populateMonths(){
-    if (!monthSelect) return;
-    var now = new Date();
-    var y = now.getFullYear(), m = now.getMonth()+1;
-    var opts = [];
-    for (var i=0; i<12; i++){
-      var mm = ((m + i - 1) % 12) + 1;
-      var yy = y + Math.floor((m + i - 1) / 12);
-      opts.push({ value: yy + '-' + pad2(mm), label: plMonthLabel(yy, mm) });
+    // --- Filtr miesiąca ---
+    function populateMonths() {
+      if (!monthSelect) return;
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = now.getMonth() + 1;
+      const opts = [];
+      for (let i = 0; i < 12; i++) {
+        const mm = ((m + i - 1) % 12) + 1;
+        const yy = y + Math.floor((m + i - 1) / 12);
+        opts.push({ value: yy + '-' + pad2(mm), label: plMonthLabel(yy, mm) });
+      }
+      monthSelect.innerHTML = opts
+        .map((o) => `<option value="${o.value}">${o.label}</option>`)
+        .join('');
+      monthSelect.value = y + '-' + pad2(m);
     }
-    monthSelect.innerHTML = opts.map(function(o){
-      return '<option value="'+o.value+'">'+o.label+'</option>';
-    }).join('');
-    monthSelect.value = y + '-' + pad2(m);
-  }
 
-  async function fetchMonth(ym){
-    // ym = "YYYY-MM"
-    var parts = (ym || '').split('-').map(Number);
-    var yy = parts[0], mm = parts[1];
-    if (!yy || !mm) return;
+    async function fetchMonth(ym) {
+      const parts = (ym || '').split('-').map(Number);
+      const yy = parts[0],
+        mm = parts[1];
+      if (!yy || !mm) return;
 
-    var first = new Date(yy, mm-1, 1);
-    var last  = new Date(yy, mm, 0);
+      const first = new Date(yy, mm - 1, 1);
+      const last = new Date(yy, mm, 0);
 
-    var url = '/api/slots?from=' + fmtISODate(first) + '&to=' + fmtISODate(last);
-    try {
-      var res = await fetch(url, { cache:'no-store' });
-      var json = await res.json();
-      dataSlots = (json && json.slots) ? json.slots : {};
-      renderDates();
-
-      // auto-wybór pierwszego dostępnego dnia
-      var firstBtn = datesEl.querySelector('.date-btn');
-      if (firstBtn) { firstBtn.click(); }
-    } catch {
-      datesEl.innerHTML = '<p class="muted">Nie udało się wczytać terminów.</p>';
-    }
-  }
-
-  if (monthSelect){
-    populateMonths();
-    monthSelect.addEventListener('change', function(){
-      selectedDate = null; selectedTime = null; updateSummary();
-      fetchMonth(monthSelect.value);
-    });
-    // start: bieżący miesiąc
-    fetchMonth(monthSelect.value);
-  } else {
-    // awaryjnie: stary tryb (21 dni od dziś)
-    fetch('/api/slots?from=' + fmtISODate(new Date()), { cache:'no-store' })
-      .then(function(res){ return res.json(); })
-      .then(function(json){
-        dataSlots = (json && json.slots) ? json.slots : {};
+      const url =
+        '/api/slots?from=' + fmtISODate(first) + '&to=' + fmtISODate(last);
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        const json = await res.json();
+        dataSlots = json && json.slots ? json.slots : {};
         renderDates();
-        var firstBtn = datesEl.querySelector('.date-btn'); if (firstBtn) firstBtn.click();
-      })
-      .catch(function(){ datesEl.innerHTML = '<p class="muted">Nie udało się wczytać terminów.</p>'; });
-  }
-}
+        const firstBtn = $('.date-btn', datesEl);
+        if (firstBtn) firstBtn.click();
+      } catch {
+        datesEl.innerHTML = '<p class="muted">Nie udało się wczytać terminów.</p>';
+      }
+    }
 
-// === Start aplikacji ===
-document.addEventListener('DOMContentLoaded', function(){
-  loadData();
-  loadAboutContent();
-  loadBooking();
-});
-
-// Równe wysokości kart Oferty przy resize/load
-window.addEventListener('resize', (function(){
-  var rAF = null;
-  return function(){
-    if (rAF) cancelAnimationFrame(rAF);
-    rAF = requestAnimationFrame(equalizeOfertaHeights);
-  };
-})());
-window.addEventListener('load', equalizeOfertaHeights);
+    if (monthSelect) {
+      populateMonths();
+      monthSelect.addEventListener('change', () => {
+        selectedDate = null;
+        selectedTime = null;
+        updateSummary();
+        fetchMonth(monthSelect.value);
+      });
+      // start: bieżący miesiąc
+      fetchMonth(monthSelect.value);
+    } else {
+      // awaryjnie: stary tryb (21 dni od dziś)
+      const from = fmtISODate(new Date());
+      fetch('/api/slots?from=' + from, { cache: 'no-store' })
+        .then((r) => r.json())
+        .then((json) => {
+          dataSlots = json && json.slots ? json.slots : {};
+          renderDates();
+          const firstBtn = $('.date-btn', datesEl);
+          if (firstBtn) firstBtn.click();
+        })
+        .catch(() => {
+          datesEl.innerHTML =
+            '<p class="muted">Nie udało się wczytać terminów.</p>';
+        });
+    }
+  })();
+})();
