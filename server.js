@@ -18,16 +18,17 @@ const PROD = process.env.NODE_ENV === 'production';
 
 app.use(express.json());
 app.use(cookieParser());
-app.set('trust proxy', 1); // poprawna obsługa ciasteczek za proxy/CDN
+app.set('trust proxy', 1);
 
-// Static
+// === STATIC FRONTEND ===
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: PROD ? '1h' : 0,
   extensions: ['html']
 }));
+// Statyczne assets dla /admin (css/js, jeśli kiedyś dodasz)
 app.use('/admin', express.static(path.join(__dirname, 'admin'), { maxAge: 0 }));
 
-// Auth
+// === AUTH HELPERS ===
 function sign(u) { return jwt.sign({ sub: u.id, email: u.email }, JWT_SECRET, { expiresIn: '7d' }); }
 function requireAuth(req, res, next) {
   const token = req.cookies['valivio_token'];
@@ -36,6 +37,19 @@ function requireAuth(req, res, next) {
   catch { return res.status(401).json({ error: 'unauthorized' }); }
 }
 
+// === ADMIN GATE (/admin) ===
+// Jeśli masz ważne JWT -> serwuj panel, inaczej -> logowanie
+app.get('/admin', (req, res) => {
+  const token = req.cookies['valivio_token'];
+  try {
+    jwt.verify(token, JWT_SECRET);
+    return res.sendFile(path.join(__dirname, 'admin', 'app.html'));
+  } catch {
+    return res.sendFile(path.join(__dirname, 'admin', 'login.html'));
+  }
+});
+
+// === AUTH API ===
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: 'missing' });
@@ -49,51 +63,40 @@ app.post('/api/login', async (req, res) => {
   });
   res.json({ ok: true });
 });
+
 app.post('/api/logout', (req, res) => { res.clearCookie('valivio_token'); res.json({ ok: true }); });
 
-// Admin: slots CRUD (z walidacją i czytelnymi błędami)
+// Kto zalogowany?
+app.get('/api/me', requireAuth, (req, res) => {
+  res.json({ email: req.user.email });
+});
+
+// === SLOTS ADMIN (CRUD) ===
 app.post('/api/slots', requireAuth, async (req, res) => {
   try {
     let { date, time, duration } = req.body || {};
     duration = typeof duration === 'string' ? parseInt(duration, 10) : duration;
-
     if (!date || !time || !duration || isNaN(duration) || duration <= 0) {
-      return res.status(400).json({
-        error: 'bad_request',
-        message: 'Podaj datę (YYYY-MM-DD), godzinę (HH:mm) i czas trwania w minutach (>0).'
-      });
+      return res.status(400).json({ error: 'bad_request', message: 'Podaj datę (YYYY-MM-DD), godzinę (HH:mm) i czas trwania w minutach (>0).' });
     }
-
     const start = DateTime.fromISO(`${date}T${time}`, { zone: 'Europe/Warsaw' });
-    if (!start.isValid) {
-      return res.status(400).json({ error: 'bad_request', message: 'Nieprawidłowa data lub godzina.' });
-    }
-
+    if (!start.isValid) return res.status(400).json({ error: 'bad_request', message: 'Nieprawidłowa data lub godzina.' });
     const startUTC = start.toUTC();
     const endUTC = startUTC.plus({ minutes: duration });
-
-    const slot = await prisma.slot.create({
-      data: { startAt: startUTC.toJSDate(), endAt: endUTC.toJSDate(), capacity: 1 }
-    });
-
+    const slot = await prisma.slot.create({ data: { startAt: startUTC.toJSDate(), endAt: endUTC.toJSDate(), capacity: 1 } });
     return res.json({ ok: true, slot });
   } catch (e) {
+    if (e.code === 'P2002') return res.status(409).json({ error: 'duplicate', message: 'Taki termin już istnieje.' });
     console.error('Create slot error:', e);
-    if (e.code === 'P2002') {
-      return res.status(409).json({ error: 'duplicate', message: 'Taki termin już istnieje.' });
-    }
     return res.status(500).json({ error: 'server_error', message: 'Błąd serwera przy tworzeniu slotu.' });
   }
 });
 
-// BEZPIECZNE usuwanie: nie pozwól skasować slotu z rezerwacją
+// Blokuj usunięcie slotu z rezerwacją
 app.delete('/api/slots/:id', requireAuth, async (req, res) => {
   const id = Number(req.params.id);
   try {
-    const slot = await prisma.slot.findUnique({
-      where: { id },
-      include: { bookings: true }
-    });
+    const slot = await prisma.slot.findUnique({ where: { id }, include: { bookings: true } });
     if (!slot) return res.status(404).json({ error: 'not_found' });
     if (slot.bookings && slot.bookings.length > 0) {
       return res.status(409).json({ error: 'has_booking', message: 'Slot ma rezerwację – nie można usunąć.' });
@@ -106,7 +109,7 @@ app.delete('/api/slots/:id', requireAuth, async (req, res) => {
   }
 });
 
-// Lista slotów dla panelu admina: dołącz rezerwacje + anty-cache
+// Lista slotów dla panelu (z rezerwacjami)
 app.get('/api/admin/slots', requireAuth, async (_req, res) => {
   const items = await prisma.slot.findMany({
     orderBy: { startAt: 'asc' },
@@ -118,7 +121,7 @@ app.get('/api/admin/slots', requireAuth, async (_req, res) => {
   res.json(items);
 });
 
-// Public: list slots & book
+// === PUBLIC API (rezerwacja) ===
 app.get('/api/slots', async (req, res) => {
   const { from, to } = req.query;
   const fromDT = from ? DateTime.fromISO(String(from), { zone: 'Europe/Warsaw' }).startOf('day').toUTC()
@@ -160,10 +163,10 @@ app.post('/api/book', async (req, res) => {
   }
 });
 
-// Health
+// === HEALTH ===
 app.get('/healthz', (_req, res) => res.send('ok'));
 
-// Fallback
+// === FALLBACK ===
 app.use((req, res, next) => {
   if (req.method !== 'GET') return next();
   const accept = req.headers.accept || '';
