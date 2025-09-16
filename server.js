@@ -18,16 +18,16 @@ const PROD = process.env.NODE_ENV === 'production';
 
 app.use(express.json());
 app.use(cookieParser());
-app.set('trust proxy', 1); // poprawna obsługa ciasteczek Secure za CDN/Proxy
+app.set('trust proxy', 1); // poprawna obsługa ciasteczek za proxy/CDN
 
-// === Static: frontend & admin ===
+// Static
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: PROD ? '1h' : 0,
   extensions: ['html']
 }));
 app.use('/admin', express.static(path.join(__dirname, 'admin'), { maxAge: 0 }));
 
-// === Auth helpers ===
+// Auth
 function sign(u) { return jwt.sign({ sub: u.id, email: u.email }, JWT_SECRET, { expiresIn: '7d' }); }
 function requireAuth(req, res, next) {
   const token = req.cookies['valivio_token'];
@@ -36,7 +36,6 @@ function requireAuth(req, res, next) {
   catch { return res.status(401).json({ error: 'unauthorized' }); }
 }
 
-// === Auth API ===
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: 'missing' });
@@ -52,7 +51,7 @@ app.post('/api/login', async (req, res) => {
 });
 app.post('/api/logout', (req, res) => { res.clearCookie('valivio_token'); res.json({ ok: true }); });
 
-// === Admin: slots CRUD (z walidacją i czytelnymi błędami) ===
+// Admin: slots CRUD (z walidacją i czytelnymi błędami)
 app.post('/api/slots', requireAuth, async (req, res) => {
   try {
     let { date, time, duration } = req.body || {};
@@ -87,22 +86,39 @@ app.post('/api/slots', requireAuth, async (req, res) => {
   }
 });
 
+// BEZPIECZNE usuwanie: nie pozwól skasować slotu z rezerwacją
 app.delete('/api/slots/:id', requireAuth, async (req, res) => {
   const id = Number(req.params.id);
-  try { await prisma.slot.delete({ where: { id } }); res.json({ ok: true }); }
-  catch { res.status(404).json({ error: 'not_found' }); }
+  try {
+    const slot = await prisma.slot.findUnique({
+      where: { id },
+      include: { bookings: true }
+    });
+    if (!slot) return res.status(404).json({ error: 'not_found' });
+    if (slot.bookings && slot.bookings.length > 0) {
+      return res.status(409).json({ error: 'has_booking', message: 'Slot ma rezerwację – nie można usunąć.' });
+    }
+    await prisma.slot.delete({ where: { id } });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Delete slot error:', e);
+    res.status(500).json({ error: 'server_error' });
+  }
 });
 
+// Lista slotów dla panelu admina: dołącz rezerwacje + anty-cache
 app.get('/api/admin/slots', requireAuth, async (_req, res) => {
-  const items = await prisma.slot.findMany({ orderBy: { startAt: 'asc' } });
-  // Wyłącz cache po drodze (przeglądarka/CDN)
+  const items = await prisma.slot.findMany({
+    orderBy: { startAt: 'asc' },
+    include: { bookings: true }
+  });
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
   res.json(items);
 });
 
-// === Public: list slots & book ===
+// Public: list slots & book
 app.get('/api/slots', async (req, res) => {
   const { from, to } = req.query;
   const fromDT = from ? DateTime.fromISO(String(from), { zone: 'Europe/Warsaw' }).startOf('day').toUTC()
@@ -144,10 +160,10 @@ app.post('/api/book', async (req, res) => {
   }
 });
 
-// === Health ===
+// Health
 app.get('/healthz', (_req, res) => res.send('ok'));
 
-// === Fallback (opcjonalnie) ===
+// Fallback
 app.use((req, res, next) => {
   if (req.method !== 'GET') return next();
   const accept = req.headers.accept || '';
