@@ -138,29 +138,54 @@ footer{border-top:1px solid var(--border); padding:40px 0 64px}
 /* =========================
    DLA KOGO – slider poziomy
    ========================= */
+/* === DLA KOGO — slider: 3 (desktop+tablet) → 1 (telefon) === */
 :root{ --dk-gap:24px; }
 
-#dlaKogoCards .dk-viewport{ overflow:hidden; }
+#dlaKogoCards .dk-viewport{
+  overflow:hidden;
+  -webkit-overflow-scrolling: touch;
+}
 #dlaKogoCards .dk-track{
-  display:flex; gap:var(--dk-gap);
-  will-change:transform; transition:transform .5s ease;
-  padding:0 2px; align-items:stretch;
+  --dk-visible:3;           /* UWAGA: 3 również na tabletach */
+  display:flex;
+  gap:var(--dk-gap);
+  align-items:stretch;
+  padding:0 2px;
 }
-#dlaKogoCards .dk-card{ flex:0 0 calc((100% - (var(--dk-visible) - 1) * var(--dk-gap)) / var(--dk-visible)); display:flex; }
-#dlaKogoCards .dk-card .card{ display:flex; flex-direction:column; height:100%; }
+#dlaKogoCards .dk-card{
+  flex:0 0 calc( (100% - (var(--dk-visible) - 1) * var(--dk-gap)) / var(--dk-visible) );
+  display:flex;
+}
+#dlaKogoCards .dk-card .card{
+  display:flex; flex-direction:column; height:100%;
+}
 
-/* responsywność (3→2→1 widoczne) – sterowane JS przez --dk-visible,
-   ale awaryjnie ustawiamy breakpointy */
-@media (max-width:960px){ #dlaKogoCards .dk-track{ --dk-visible:2; } }
-@media (max-width:680px){ #dlaKogoCards .dk-track{ --dk-visible:1; } }
+/* Animacja wejścia (opcjonalnie) */
+#dlaKogoCards{ transition: opacity .28s ease, transform .28s ease; }
+#dlaKogoCards.dk-fade{ opacity:.0; transform: translateY(6px); }
 
-/* Wyrównanie tytułu/opisu w kartach „Dla kogo” (2 linie tytułu + 1 linia przerwy) */
+/* Telefon: 1 karta na raz */
+@media (max-width:680px){
+  #dlaKogoCards .dk-track{ --dk-visible:1; }
+}
+
+/* Ukryj pasek przewijania (opcjonalnie) */
+#dlaKogoCards .dk-viewport::-webkit-scrollbar{ display:none; }
+#dlaKogoCards .dk-viewport{ scrollbar-width: none; }
+
+/* === DLA KOGO — typografia i równe wysokości jak wcześniej === */
+#dla-kogo .card{ text-align:center; }
 #dla-kogo .card .h3{
-  --lh:1.25; line-height:var(--lh);
-  min-height:calc(2 * 1em * var(--lh)); max-height:calc(2 * 1em * var(--lh));
-  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin:0;
+  --lh:1.25;
+  line-height:var(--lh);
+  min-height:calc(2 * 1em * var(--lh));
+  max-height:calc(2 * 1em * var(--lh));
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; margin:0;
 }
-#dla-kogo .card .meta{ margin-top:calc(1em * 1.25); }
+#dla-kogo .card .meta{
+  margin-top:calc(1em * 1.25); /* „1 linia przerwy” pod nagłówkiem */
+}
 
 /* =========================
    OFERTA – równe karty i stałe pola
