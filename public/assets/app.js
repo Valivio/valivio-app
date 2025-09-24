@@ -274,42 +274,56 @@
   // O MNIE – treść z assets/about.html/md
   // ==================================
   (function aboutLoader() {
-    const mount = $('#aboutMount');
+    const mount = $('#aboutMount') || $('#aboutContent');
     if (!mount) return;
 
-    fetch('assets/about.html', { cache: 'no-store' })
-      .then((r) => (r.ok ? r.text() : Promise.reject()))
-      .then((html) => {
-        mount.innerHTML = html;
-      })
-      .catch(() => {
-        fetch('assets/about.md', { cache: 'no-store' })
-          .then((r) => (r.ok ? r.text() : Promise.reject()))
-          .then((md) => {
+    // spróbuj kolejno kilku ścieżek, żeby zadziałało z Twoim repo:
+    const htmlCandidates = ['assets/about-content.html', 'assets/about.html'];
+    const mdCandidates   = ['assets/about.md', '/assets/about.md'];
+
+    (async () => {
+      for (const url of htmlCandidates) {
+        try {
+          const r = await fetch(url, { cache: 'no-store' });
+          if (r.ok) {
+            mount.innerHTML = await r.text();
+            return;
+          }
+        } catch {}
+      }
+      for (const url of mdCandidates) {
+        try {
+          const r = await fetch(url, { cache: 'no-store' });
+          if (r.ok) {
+            const md = await r.text();
             mount.innerHTML = mdToHTML(md);
-          })
-          .catch(() => {
-            mount.innerHTML = '<p class="muted">Sekcja „O mnie” w przygotowaniu.</p>';
-          });
-      });
+            return;
+          }
+        } catch {}
+      }
+      mount.innerHTML = '<p class="muted">Sekcja „O mnie” w przygotowaniu.</p>';
+    })();
 
     function mdToHTML(md) {
-      // bardzo prosty markdown->html (bez replaceAll)
       md = String(md);
-      let html = escapeHTML(md);
+      // prosty parser markdown -> HTML
+      let html = md
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/
+/g,'
+');
+
       html = html.replace(/^### (.*)$/gm, '<h3>$1</h3>');
       html = html.replace(/^## (.*)$/gm, '<h2>$1</h2>');
       html = html.replace(/^# (.*)$/gm, '<h1>$1</h1>');
       html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
       html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
       html = html.replace(/^\s*[-*] (.*)$/gm, '<li>$1</li>');
-      html = html.replace(/(<li>.*<\/li>)(\s*(<li>.*<\/li>))+?/gs, function (m) {
-        return '<ul>' + m + '</ul>';
-      });
-      html = html.replace(/(?:\r?\n){2,}/g, '</p><p>');
+      html = html.replace(/(<li>.*<\/li>)(\s*(<li>.*<\/li>))+?/gs, function (m) { return '<ul>' + m + '</ul>'; });
+      html = html.replace(/(?:\n){2,}/g, '</p><p>');
       return '<p>' + html + '</p>';
     }
-  })();
+  })();;
 
   // ============================================================
   // REZERWACJA – filtr wg miesiąca + wybór dnia/godziny + modal
